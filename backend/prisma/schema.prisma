@@ -1,0 +1,431 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  domain      String   @unique
+  subdomain   String   @unique
+  status      TenantStatus @default(ACTIVE)
+  plan        TenantPlan   @default(STANDARD)
+  settings    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       User[]
+  cruises     Cruise[]
+  hotels      Hotel[]
+  packages    Package[]
+  bookings    Booking[]
+  employees   Employee[]
+  departments Department[]
+  siteSettings SiteSetting[]
+  mediaFiles  MediaFile[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole @default(CUSTOMER)
+  isActive  Boolean  @default(true)
+  avatar    String?
+  phone     String?
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  bookings    Booking[]
+  employee    Employee?
+  reviews     Review[]
+  mediaFiles  MediaFile[]
+}
+
+model Cruise {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  image       String
+  images      String[]
+  rating      Float    @default(0)
+  price       Float
+  duration    Int      // in days
+  capacity    Int
+  available   Boolean  @default(true)
+  itinerary   Json?
+  amenities   String[]
+  departure   String
+  destination String
+  routeGeo    Json?    // Route coordinates [{name, lat, lng}]
+  routeNames  String[] // Route stop names
+  highlights  String[] // Cruise highlights
+  videos      Json?    // Video gallery and teasers
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  bookings    Booking[]
+  reviews     Review[]
+}
+
+model Hotel {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  image       String
+  images      String[]
+  rating      Float    @default(0)
+  price       Float
+  location    String
+  address     String
+  city        String
+  country     String
+  amenities   String[]
+  roomTypes   Json[]
+  available   Boolean  @default(true)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  bookings    Booking[]
+  reviews     Review[]
+}
+
+model Package {
+  id           String   @id @default(cuid())
+  name         String
+  description  String
+  image        String
+  images       String[]
+  rating       Float    @default(0)
+  price        Float
+  duration     Int      // in days
+  destinations String[]
+  inclusions   String[]
+  exclusions   String[]
+  itinerary    Json?
+  available    Boolean  @default(true)
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  bookings     Booking[]
+  reviews      Review[]
+}
+
+model Booking {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         BookingType
+  itemId       String   // ID of cruise, hotel, or package
+
+  // Item relations (one of these will be populated based on type)
+  cruise       Cruise?  @relation(fields: [cruiseId], references: [id])
+  cruiseId     String?
+  hotel        Hotel?   @relation(fields: [hotelId], references: [id])
+  hotelId      String?
+  package      Package? @relation(fields: [packageId], references: [id])
+  packageId    String?
+
+  status       BookingStatus @default(PENDING)
+  totalAmount  Float
+  bookingDate  DateTime
+  checkIn      DateTime
+  checkOut     DateTime
+  guests       Int      @default(1)
+  notes        String?
+
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Item relations
+  cruise    Cruise?  @relation(fields: [cruiseId], references: [id])
+  cruiseId  String?
+  hotel     Hotel?   @relation(fields: [hotelId], references: [id])
+  hotelId   String?
+  package   Package? @relation(fields: [packageId], references: [id])
+  packageId String?
+
+  rating    Int      // 1-5 scale
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Employee {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId   String   @unique
+  department   String?
+  departmentId String?
+  departmentRef Department? @relation("DepartmentRef", fields: [departmentId], references: [id])
+  position     String
+  salary       Float?
+  hireDate     DateTime
+  status       EmployeeStatus @default(ACTIVE)
+  managerId    String?
+  manager      String?
+  skills       String[]
+  bio          String?
+  address      String?
+  emergencyContact Json?
+  documents    String[]
+
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  attendances  Attendance[]
+  leaveRequests LeaveRequest[]
+  payrolls     Payroll[]
+  performances Performance[]
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  managerId   String?
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  employees   Employee[] @relation("DepartmentRef")
+}
+
+model Attendance {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date       DateTime
+  checkIn    DateTime?
+  checkOut   DateTime?
+  status     AttendanceStatus @default(PRESENT)
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([employeeId, date])
+}
+
+model LeaveRequest {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type       LeaveType
+  startDate  DateTime
+  endDate    DateTime
+  days       Int
+  reason     String
+  status     LeaveStatus @default(PENDING)
+  approvedBy String?
+  approvedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Payroll {
+  id           String   @id @default(cuid())
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month        String   // YYYY-MM format
+  basicSalary  Float
+  allowances   Float    @default(0)
+  deductions   Float    @default(0)
+  overtime     Float    @default(0)
+  bonus        Float    @default(0)
+  netSalary    Float
+  status       PayrollStatus @default(PENDING)
+  processedAt  DateTime?
+  paidAt       DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([employeeId, month])
+}
+
+model Performance {
+  id           String   @id @default(cuid())
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  period       String   // YYYY-QN or YYYY format
+  rating       Float    // 1-5 scale
+  goals        Json?
+  achievements Json?
+  feedback     String?
+  reviewerId   String
+  reviewDate   DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model SiteSetting {
+  id          String   @id @default(cuid())
+  key         String
+  value       String
+  type        SettingType @default(TEXT)
+  description String?
+  category    String?
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([key, tenantId])
+}
+
+model MediaFile {
+  id           String        @id @default(cuid())
+  filename     String
+  originalName String
+  path         String
+  url          String        // Full URL to access the file
+  size         Int
+  mimetype     String
+  category     MediaCategory @default(IMAGE)
+  alt          String?
+  title        String?
+  description  String?
+  tags         String[]
+  folder       String?       // For organizing files in folders
+  width        Int?          // For images
+  height       Int?          // For images
+  duration     Float?        // For videos in seconds
+  thumbnailUrl String?       // For video thumbnails
+  uploadedBy   String?
+  uploader     User?         @relation(fields: [uploadedBy], references: [id])
+  tenantId     String
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([category])
+  @@index([tenantId])
+  @@index([uploadedBy])
+}
+
+// Enums
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  HR_MANAGER
+  EMPLOYEE
+}
+
+enum BookingType {
+  CRUISE
+  HOTEL
+  PACKAGE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  TRIAL
+}
+
+enum TenantPlan {
+  FREE
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  TERMINATED
+  ON_LEAVE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  SICK_LEAVE
+  CASUAL_LEAVE
+}
+
+enum LeaveType {
+  SICK
+  CASUAL
+  ANNUAL
+  MATERNITY
+  PATERNITY
+  UNPAID
+  EMERGENCY
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PayrollStatus {
+  PENDING
+  PROCESSED
+  PAID
+}
+
+enum SettingType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  BOOLEAN
+  JSON
+  IMAGE
+  VIDEO
+  FILE
+}
+
+enum MediaCategory {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  AUDIO
+  ARCHIVE
+  OTHER
+}
