@@ -7,8 +7,8 @@ services:
     container_name: tripgo-postgres
     restart: always
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-tripgo}
-      POSTGRES_USER: ${POSTGRES_USER:-tripgo}
+      POSTGRES_DB: ${POSTGRES_DB:-tripgo_prod}
+      POSTGRES_USER: ${POSTGRES_USER:-tripgo_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_INITDB_ARGS: "--data-checksums"
     volumes:
@@ -33,7 +33,7 @@ services:
     networks:
       - tripgo-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tripgo}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tripgo_user}"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -91,7 +91,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-tripgo}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tripgo}?connection_limit=10&pool_timeout=20
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tripgo_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tripgo_prod}?connection_limit=10&pool_timeout=20
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
