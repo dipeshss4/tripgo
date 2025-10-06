@@ -3,8 +3,8 @@ FROM node:18-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
+# Install required dependencies for Prisma and OpenSSL
+RUN apk add --no-cache libc6-compat openssl openssl-dev
 
 WORKDIR /app
 
@@ -41,6 +41,9 @@ RUN npm ci --only=production && \
 FROM base AS runner
 WORKDIR /app
 
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl openssl-dev
+
 # Create a non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 tripgo
@@ -48,6 +51,7 @@ RUN adduser --system --uid 1001 tripgo
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=4000
+ENV OPENSSL_CONF=/etc/ssl/
 
 # Copy built application and production dependencies
 COPY --from=builder /app/dist ./dist
@@ -57,7 +61,7 @@ COPY --from=builder /app/prisma ./prisma
 
 # Create necessary directories with proper permissions
 RUN mkdir -p logs uploads && \
-    chown -R tripgo:nodejs logs uploads && \
+    chown -R tripgo:nodejs /app logs uploads && \
     chmod -R 755 logs uploads
 
 # Copy startup scripts

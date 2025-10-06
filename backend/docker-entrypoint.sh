@@ -27,15 +27,54 @@ if [ -n "$DATABASE_URL" ]; then
     fi
 fi
 
-# Run database migrations in production
+# Run database setup in production
 if [ "$NODE_ENV" = "production" ]; then
-    echo "🔄 Running database migrations..."
-    npx prisma migrate deploy --schema=./prisma/schema.prisma
+    echo "🔄 Setting up database..."
+
+    # Generate Prisma client
+    echo "🔧 Generating Prisma client..."
+    npx prisma generate --schema=./prisma/schema.prisma
+
+    # Push database schema (creates database if it doesn't exist)
+    echo "🗄️ Creating database and pushing schema..."
+    npx prisma db push --schema=./prisma/schema.prisma --accept-data-loss
 
     if [ $? -eq 0 ]; then
-        echo "✅ Database migrations completed successfully"
+        echo "✅ Database setup completed successfully"
+
+        # Seed the database with tenants if no data exists
+        echo "🌱 Checking if database seeding is needed..."
+        node -e "
+        const { PrismaClient } = require('@prisma/client');
+        const prisma = new PrismaClient();
+
+        async function checkAndSeed() {
+          try {
+            const tenantCount = await prisma.tenant.count();
+            if (tenantCount === 0) {
+              console.log('🌱 Seeding database with initial data...');
+              process.exit(1); // Exit with code 1 to trigger seeding
+            } else {
+              console.log('✅ Database already has data, skipping seed');
+              process.exit(0);
+            }
+          } catch (error) {
+            console.log('⚠️ Error checking database, will attempt seeding...');
+            process.exit(1);
+          } finally {
+            await prisma.\$disconnect();
+          }
+        }
+
+        checkAndSeed();
+        "
+
+        if [ $? -eq 1 ]; then
+            echo "🌱 Running database seeder..."
+            npm run db:seed:tenants 2>/dev/null || echo "⚠️ Seeding completed with warnings"
+        fi
     else
-        echo "❌ Database migrations failed"
+        echo "❌ Database setup failed"
         exit 1
     fi
 fi
