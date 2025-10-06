@@ -12,10 +12,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 
-# Install dependencies and generate Prisma client
-RUN npm ci --only=production && \
-    npx prisma generate && \
-    npm cache clean --force
+# Install ALL dependencies (including devDependencies for TypeScript)
+RUN npm ci && \
+    npx prisma generate
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -29,6 +28,15 @@ RUN npx prisma generate
 # Build the application
 RUN npm run build
 
+# Production dependencies stage
+FROM base AS prod-deps
+WORKDIR /app
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma/
+RUN npm ci --only=production && \
+    npx prisma generate && \
+    npm cache clean --force
+
 # Production image, copy all the files and run the application
 FROM base AS runner
 WORKDIR /app
@@ -41,9 +49,9 @@ RUN adduser --system --uid 1001 tripgo
 ENV NODE_ENV=production
 ENV PORT=4000
 
-# Copy built application
+# Copy built application and production dependencies
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 
