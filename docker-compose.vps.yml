@@ -91,6 +91,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
+      DOCKER_CONTAINER: true
       DATABASE_URL: postgresql://${POSTGRES_USER:-tripgo_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tripgo_prod}?connection_limit=10&pool_timeout=20
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET}

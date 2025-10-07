@@ -44,7 +44,7 @@ if [ "$NODE_ENV" = "production" ]; then
 
         # Seed the database with tenants if no data exists
         echo "🌱 Checking if database seeding is needed..."
-        node -e "
+        SEED_RESULT=$(node -e "
         const { PrismaClient } = require('@prisma/client');
         const prisma = new PrismaClient();
 
@@ -52,27 +52,30 @@ if [ "$NODE_ENV" = "production" ]; then
           try {
             const tenantCount = await prisma.tenant.count();
             if (tenantCount === 0) {
-              console.log('🌱 Seeding database with initial data...');
-              process.exit(1); // Exit with code 1 to trigger seeding
+              console.log('SEED_NEEDED');
             } else {
-              console.log('✅ Database already has data, skipping seed');
-              process.exit(0);
+              console.log('SEED_SKIP');
             }
           } catch (error) {
-            console.log('⚠️ Error checking database, will attempt seeding...');
-            process.exit(1);
+            console.log('SEED_NEEDED');
           } finally {
             await prisma.\$disconnect();
           }
         }
 
         checkAndSeed();
-        "
+        " 2>/dev/null)
 
-        if [ $? -eq 1 ]; then
+        if [ "$SEED_RESULT" = "SEED_NEEDED" ]; then
             echo "🌱 Running database seeder..."
-            npm run db:seed:tenants 2>/dev/null || echo "⚠️ Seeding completed with warnings"
+            npm run db:seed:tenants || {
+                echo "⚠️ Seeding failed, but continuing with startup..."
+            }
+        else
+            echo "✅ Database already has data, skipping seed"
         fi
+
+        echo "✅ Database initialization complete"
     else
         echo "❌ Database setup failed"
         exit 1

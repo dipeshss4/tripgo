@@ -281,10 +281,20 @@ if (require.main === module) {
   seedTenants()
     .then(() => {
       console.log('🎉 Multi-tenant seeding completed!');
-      process.exit(0);
+      // Only exit if not in Docker container environment
+      if (!process.env.DOCKER_CONTAINER) {
+        process.exit(0);
+      }
     })
     .catch((error) => {
       console.error('💥 Multi-tenant seeding failed:', error);
-      process.exit(1);
+      // Only exit if not in Docker container environment
+      if (!process.env.DOCKER_CONTAINER) {
+        process.exit(1);
+      }
+    })
+    .finally(() => {
+      // Disconnect Prisma client
+      prisma.$disconnect();
     });
 }
