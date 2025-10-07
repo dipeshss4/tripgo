@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# TripGo Travel Booking Platform
+# Sitemap: https://yourdomain.com/sitemap.xml
