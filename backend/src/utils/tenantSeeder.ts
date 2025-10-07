@@ -127,21 +127,21 @@ export const seedTenants = async () => {
 const seedTenantSettings = async (tenantId: string, tenantName: string, tenantSlug: string) => {
   const settings = [
     // Site Information
-    { key: 'site_name', value: tenantName, type: 'TEXT', category: 'general', label: 'Site Name', isPublic: true },
-    { key: 'site_description', value: `Welcome to ${tenantName} - Your travel companion`, type: 'TEXTAREA', category: 'general', label: 'Site Description', isPublic: true },
-    { key: 'site_logo', value: '', type: 'IMAGE', category: 'general', label: 'Site Logo', isPublic: true },
+    { key: 'site_name', value: tenantName, type: 'TEXT', category: 'general', description: 'Site Name' },
+    { key: 'site_description', value: `Welcome to ${tenantName} - Your travel companion`, type: 'TEXTAREA', category: 'general', description: 'Site Description' },
+    { key: 'site_logo', value: '', type: 'IMAGE', category: 'general', description: 'Site Logo' },
 
     // Contact Information
-    { key: 'contact_email', value: `contact@${tenantSlug}.tripgo.com`, type: 'TEXT', category: 'contact', label: 'Contact Email', isPublic: true },
-    { key: 'contact_phone', value: '+1-234-567-8900', type: 'TEXT', category: 'contact', label: 'Contact Phone', isPublic: true },
+    { key: 'contact_email', value: `contact@${tenantSlug}.tripgo.com`, type: 'TEXT', category: 'contact', description: 'Contact Email' },
+    { key: 'contact_phone', value: '+1-234-567-8900', type: 'TEXT', category: 'contact', description: 'Contact Phone' },
 
     // Hero Section
-    { key: 'hero_title', value: `Discover Amazing ${tenantSlug === 'cruises' ? 'Cruises' : tenantSlug === 'hotels' ? 'Hotels' : 'Adventures'}`, type: 'TEXT', category: 'hero', label: 'Hero Title', isPublic: true },
-    { key: 'hero_subtitle', value: `Book the best ${tenantSlug === 'cruises' ? 'cruise experiences' : tenantSlug === 'hotels' ? 'hotel stays' : 'travel packages'}`, type: 'TEXTAREA', category: 'hero', label: 'Hero Subtitle', isPublic: true },
+    { key: 'hero_title', value: `Discover Amazing ${tenantSlug === 'cruises' ? 'Cruises' : tenantSlug === 'hotels' ? 'Hotels' : 'Adventures'}`, type: 'TEXT', category: 'hero', description: 'Hero Title' },
+    { key: 'hero_subtitle', value: `Book the best ${tenantSlug === 'cruises' ? 'cruise experiences' : tenantSlug === 'hotels' ? 'hotel stays' : 'travel packages'}`, type: 'TEXTAREA', category: 'hero', description: 'Hero Subtitle' },
 
     // Business Settings
-    { key: 'currency', value: 'USD', type: 'TEXT', category: 'business', label: 'Default Currency', isPublic: true },
-    { key: 'timezone', value: 'America/New_York', type: 'TEXT', category: 'business', label: 'Default Timezone', isPublic: false },
+    { key: 'currency', value: 'USD', type: 'TEXT', category: 'business', description: 'Default Currency' },
+    { key: 'timezone', value: 'America/New_York', type: 'TEXT', category: 'business', description: 'Default Timezone' },
   ];
 
   for (const setting of settings) {
