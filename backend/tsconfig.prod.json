@@ -12,6 +12,17 @@
     "resolveJsonModule": true,
     "moduleResolution": "node",
 
+    // Path mapping for @ aliases
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"],
+      "@/controllers/*": ["controllers/*"],
+      "@/middleware/*": ["middleware/*"],
+      "@/types": ["types/index"],
+      "@/types/*": ["types/*"],
+      "@/utils/*": ["utils/*"]
+    },
+
     // Ultra-permissive settings for production build
     "strict": false,
     "noImplicitAny": false,
@@ -32,6 +43,7 @@
     "noUnusedParameters": false,
     "allowUnusedLabels": true,
     "allowUnreachableCode": true,
+
 
     // Disable output options to minimize issues
     "sourceMap": false,
