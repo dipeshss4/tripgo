@@ -112,8 +112,13 @@ export const cruiseApi = {
       pagination: response.data?.pagination || response.pagination
     };
   },
+  getById: (id) => apiRequestWithRetry(`/cruises/${id}`),
   getBySlug: (slug) => apiRequestWithRetry(`/cruises/${slug}`),
   getReviews: (id) => apiRequestWithRetry(`/cruises/${id}/reviews`),
+  checkAvailability: (id, params) => apiRequestWithRetry(`/cruises/${id}/availability`, {
+    method: 'POST',
+    body: JSON.stringify(params)
+  }),
 };
 
 export const hotelApi = {
@@ -159,6 +164,11 @@ export const authApi = {
 
 export const bookingApi = {
   create: (bookingData, token) => apiRequest('/bookings', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(bookingData),
+  }),
+  createCruiseBooking: (cruiseId, bookingData, token) => apiRequest(`/cruises/${cruiseId}/book`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(bookingData),

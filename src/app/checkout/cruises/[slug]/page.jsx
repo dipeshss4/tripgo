@@ -8,9 +8,12 @@ import { useApi } from "../../../components/hooks/useApi";
 
 /* ——— Page ——— */
 export default function CheckoutCruise({ params }) {
+  // Check if params.slug looks like an ID (starts with 'c' and has long alphanumeric string)
+  const isId = params.slug && params.slug.match(/^c[a-z0-9]{20,}$/);
+
   const { data: cruiseData, loading: cruiseLoading, error: cruiseError } = useApi(
-    () => cruiseApi.getBySlug(params.slug),
-    [params.slug]
+    () => isId ? cruiseApi.getById(params.slug) : cruiseApi.getBySlug(params.slug),
+    [params.slug, isId]
   );
 
   const cruise = cruiseData?.data;
@@ -100,12 +103,12 @@ export default function CheckoutCruise({ params }) {
     <main className="bg-gray-50">
       {/* HERO */}
       <section className="relative h-[42vh] w-full overflow-hidden">
-        <img src={cruise.image} alt={cruise.title} className="absolute inset-0 h-full w-full object-cover scale-105" />
+        <img src={cruise.image} alt={cruise.name} className="absolute inset-0 h-full w-full object-cover scale-105" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-black/70" />
         <div className="relative z-10 mx-auto flex h-full max-w-7xl items-end px-4 pb-8 sm:px-6 lg:px-8">
           <div className="max-w-3xl text-white">
             <p className="text-[11px] uppercase tracking-[0.25em] text-white/85">Checkout</p>
-            <h1 className="mt-1 text-3xl font-extrabold sm:text-4xl">{cruise.title}</h1>
+            <h1 className="mt-1 text-3xl font-extrabold sm:text-4xl">{cruise.name}</h1>
             <p className="mt-2 text-white/90">{cruise.description || cruise.summary}</p>
             <div className="mt-3 flex flex-wrap gap-2 text-sm text-white/90">
               <Badge ghost>⭐ {cruise.rating || 'N/A'}</Badge>
@@ -247,7 +250,7 @@ export default function CheckoutCruise({ params }) {
 
                   {/* Next */}
                   <div className="mt-6 flex items-center justify-between">
-                    <Link href={`/cruises/${cruise.slug}`} className="text-sm font-semibold text-gray-600 hover:underline">
+                    <Link href={`/cruises/${isId ? cruise.id : cruise.slug || cruise.id}`} className="text-sm font-semibold text-gray-600 hover:underline">
                       ← Back to cruise
                     </Link>
                     <button
@@ -330,7 +333,7 @@ export default function CheckoutCruise({ params }) {
               <>
                 <Card title="Review & Confirm">
                   <ul className="space-y-2 text-sm text-gray-700">
-                    <li>• <b>Cruise:</b> {cruise.title}</li>
+                    <li>• <b>Cruise:</b> {cruise.name}</li>
                     <li>• <b>Date:</b> {date || "—"}</li>
                     <li>• <b>Travelers:</b> {adults} adults{children ? `, ${children} children` : ""}</li>
                     <li>• <b>Cabin:</b> {cabin}</li>
@@ -400,7 +403,7 @@ export default function CheckoutCruise({ params }) {
                           };
 
                           await bookingApi.createCruiseBooking(cruise.id, bookingData, token);
-                          alert(`🎉 Booking confirmed!\n\n${cruise.title}\nDate: ${date}\nTravelers: ${travelers}\nTotal: $${total.toLocaleString()}`);
+                          alert(`🎉 Booking confirmed!\n\n${cruise.name}\nDate: ${date}\nTravelers: ${travelers}\nTotal: $${total.toLocaleString()}`);
                           // You can replace alert with router.push('/checkout/success') later
                         } catch (error) {
                           console.error('Booking failed:', error);
@@ -445,10 +448,10 @@ export default function CheckoutCruise({ params }) {
           <aside className="lg:sticky lg:top-24">
             <div className="overflow-hidden rounded-2xl bg-white shadow ring-1 ring-black/5">
               <div className="relative h-44 w-full">
-                <img src={cruise.image} alt={cruise.title} className="absolute inset-0 h-full w-full object-cover" />
+                <img src={cruise.image} alt={cruise.name} className="absolute inset-0 h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
                 <div className="absolute bottom-3 left-4 right-4 text-white">
-                  <h3 className="text-lg font-semibold">{cruise.title}</h3>
+                  <h3 className="text-lg font-semibold">{cruise.name}</h3>
                   <p className="text-white/85 text-sm">{cruise.duration || cruise.durationDays || 'N/A'} days • {cruise.type}</p>
                 </div>
               </div>
