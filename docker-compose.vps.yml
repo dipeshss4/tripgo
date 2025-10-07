@@ -134,6 +134,50 @@ services:
         reservations:
           memory: 256M
 
+  # TripGo Main Frontend (Next.js)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tripgo-frontend:latest
+    container_name: tripgo-frontend
+    restart: always
+    environment:
+      NODE_ENV: production
+      BACKEND_URL: http://backend:4000
+    networks:
+      - tripgo-network
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # TripGo Admin Panel (Vite)
+  admin:
+    build:
+      context: ./admin-panel
+      dockerfile: Dockerfile
+    image: tripgo-admin:latest
+    container_name: tripgo-admin
+    restart: always
+    environment:
+      NODE_ENV: production
+      VITE_API_URL: /api
+    networks:
+      - tripgo-network
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
   # Nginx Reverse Proxy with SSL
   nginx:
     image: nginx:alpine
@@ -143,7 +187,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.vps.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.fullstack.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - backend_uploads:/var/www/uploads:ro
       - nginx_cache:/var/cache/nginx
@@ -152,6 +196,8 @@ services:
       - tripgo-network
     depends_on:
       - backend
+      - frontend
+      - admin
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
