@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "rm -rf dist && npm run build:esbuild && echo 'Build completed successfully'",
-    "build:esbuild": "rm -rf dist && npx esbuild src/server.ts --bundle --outdir=dist --platform=node --target=node18 --format=cjs --external:@prisma/client --external:bcryptjs --external:jsonwebtoken --external:nodemailer --external:stripe --external:multer --external:sharp --external:cors --external:helmet --external:express --external:compression --external:express-rate-limit --external:mime-types --external:validator --external:zod --external:dotenv && npx esbuild src/utils/tenantSeeder.ts --bundle --outfile=dist/utils/tenantSeeder.js --platform=node --target=node18 --format=cjs --external:@prisma/client",
+    "build:esbuild": "rm -rf dist && npx esbuild src/server.ts --bundle --outdir=dist --platform=node --target=node18 --format=cjs --external:@prisma/client --external:bcryptjs --external:jsonwebtoken --external:nodemailer --external:stripe --external:multer --external:sharp --external:cors --external:helmet --external:express --external:compression --external:express-rate-limit --external:mime-types --external:validator --external:zod --external:dotenv && npx esbuild src/utils/tenantSeeder.ts --bundle --outfile=dist/utils/tenantSeeder.js --platform=node --target=node18 --format=cjs --external:@prisma/client && npx esbuild src/utils/seedAdmin.ts --bundle --outfile=dist/utils/seedAdmin.js --platform=node --target=node18 --format=cjs --external:@prisma/client --external:bcryptjs",
     "build:fallback": "tsc -p tsconfig.prod.json --noEmitOnError false",
     "build:strict": "tsc",
     "start": "tsx dist/server.ts",
@@ -16,7 +16,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:seed": "tsx src/utils/seedAdmin.ts",
+    "db:seed": "node dist/utils/seedAdmin.js || tsx src/utils/seedAdmin.ts",
     "db:seed:tenants": "node dist/utils/tenantSeeder.js || tsx src/utils/tenantSeeder.ts",
     "db:reset": "prisma migrate reset --force && npm run db:seed:tenants"
   },
