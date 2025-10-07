@@ -66,9 +66,8 @@ export const seedSampleData = async () => {
     // Create some sample cruises
     const sampleCruises = [
       {
-        title: 'Mediterranean Explorer',
+        name: 'Mediterranean Explorer',
         description: 'Discover the beauty of the Mediterranean with stops in Italy, Greece, and Spain.',
-        slug: 'mediterranean-explorer',
         price: 1299,
         image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800',
         images: [
@@ -76,46 +75,54 @@ export const seedSampleData = async () => {
           'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'
         ],
         duration: 7,
-        type: 'Ocean Cruise',
         capacity: 2000,
         amenities: ['Pool', 'Spa', 'Casino', 'Restaurants', 'Entertainment'],
         departure: 'Barcelona, Spain',
         destination: 'Mediterranean Sea',
-        startDate: new Date('2024-06-01'),
-        endDate: new Date('2024-06-08'),
         available: true,
         rating: 4.7
       },
       {
-        title: 'Alaska Wildlife Expedition',
+        name: 'Alaska Wildlife Expedition',
         description: 'Experience the pristine wilderness of Alaska with glacier views and wildlife spotting.',
-        slug: 'alaska-wildlife-expedition',
         price: 1599,
         image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
         images: [
           'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800'
         ],
         duration: 8,
-        type: 'Expedition',
         capacity: 1200,
         amenities: ['Observatory Deck', 'Naturalist Guides', 'Heated Pool', 'Library'],
         departure: 'Seattle, WA',
         destination: 'Alaska',
-        startDate: new Date('2024-07-15'),
-        endDate: new Date('2024-07-23'),
         available: true,
         rating: 4.9
       }
     ];
 
-    for (const cruise of sampleCruises) {
-      const existing = await prisma.cruise.findUnique({
-        where: { id: cruise.slug }
-      });
+    // Get the main tenant for assigning cruises
+    const mainTenant = await prisma.tenant.findFirst({
+      where: { name: 'TripGo Main' }
+    });
 
-      if (!existing) {
-        await prisma.cruise.create({ data: cruise });
-        console.log(`✅ Created cruise: ${cruise.title}`);
+    if (mainTenant) {
+      for (const cruise of sampleCruises) {
+        const existing = await prisma.cruise.findFirst({
+          where: {
+            name: cruise.name,
+            tenantId: mainTenant.id
+          }
+        });
+
+        if (!existing) {
+          await prisma.cruise.create({
+            data: {
+              ...cruise,
+              tenantId: mainTenant.id
+            }
+          });
+          console.log(`✅ Created cruise: ${cruise.name}`);
+        }
       }
     }
 
@@ -124,12 +131,12 @@ export const seedSampleData = async () => {
       {
         name: 'Grand Ocean Resort',
         description: 'Luxury beachfront resort with world-class amenities.',
-        slug: 'grand-ocean-resort',
-        pricePerNight: 299,
+        price: 299,
         image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
         images: [
           'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'
         ],
+        location: 'Miami Beach, Florida',
         address: '123 Ocean Drive',
         city: 'Miami',
         country: 'USA',
@@ -143,14 +150,24 @@ export const seedSampleData = async () => {
       }
     ];
 
-    for (const hotel of sampleHotels) {
-      const existing = await prisma.hotel.findUnique({
-        where: { id: hotel.slug }
-      });
+    if (mainTenant) {
+      for (const hotel of sampleHotels) {
+        const existing = await prisma.hotel.findFirst({
+          where: {
+            name: hotel.name,
+            tenantId: mainTenant.id
+          }
+        });
 
-      if (!existing) {
-        await prisma.hotel.create({ data: hotel });
-        console.log(`✅ Created hotel: ${hotel.name}`);
+        if (!existing) {
+          await prisma.hotel.create({
+            data: {
+              ...hotel,
+              tenantId: mainTenant.id
+            }
+          });
+          console.log(`✅ Created hotel: ${hotel.name}`);
+        }
       }
     }
 
