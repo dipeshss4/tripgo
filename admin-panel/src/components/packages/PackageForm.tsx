@@ -6,7 +6,7 @@ import { MediaFile } from '../../services/media'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import TextArea from '../ui/TextArea'
-import MediaPicker from '@/components/media/MediaPicker'
+import MediaPicker from '@/components/media/MediaPickerStub'
 import { PlusIcon, XMarkIcon, PhotoIcon, ClockIcon } from '@heroicons/react/24/outline'
 import { getImageUrl } from '../../utils/imageUtils'
 

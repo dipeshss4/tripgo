@@ -7,7 +7,7 @@ import Button from '../ui/Button'
 import Input from '../ui/Input'
 import TextArea from '../ui/TextArea'
 import Select from '../ui/Select'
-import MediaPicker from '@/components/media/MediaPicker'
+import MediaPicker from '@/components/media/MediaPickerStub'
 import { PlusIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline'
 
 interface CruiseFormProps {
