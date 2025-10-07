@@ -559,7 +559,7 @@ export const bulkUserActions = async (req: RoleAuthRequest, res: Response, next:
     switch (action) {
       case 'ban':
         result = await prisma.user.updateMany({
-          where: { id: { in: userIds }, id: { not: req.userId } },
+          where: { id: { in: userIds, not: req.userId } },
           data: { isActive: false }
         });
         break;
@@ -571,7 +571,7 @@ export const bulkUserActions = async (req: RoleAuthRequest, res: Response, next:
         break;
       case 'delete':
         result = await prisma.user.deleteMany({
-          where: { id: { in: userIds }, id: { not: req.userId } }
+          where: { id: { in: userIds, not: req.userId } }
         });
         break;
       default:
