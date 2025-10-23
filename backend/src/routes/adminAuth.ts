@@ -28,7 +28,8 @@ router.post('/login', validateAdminLogin, async (req, res, next) => {
         lastName: true,
         role: true,
         password: true,
-        isActive: true
+        isActive: true,
+        tenantId: true
       }
     });
 
@@ -57,7 +58,8 @@ router.post('/login', validateAdminLogin, async (req, res, next) => {
       {
         userId: admin.id,
         email: admin.email,
-        role: admin.role
+        role: admin.role,
+        tenantId: admin.tenantId
       },
       process.env.JWT_SECRET!,
       { expiresIn: '24h' }

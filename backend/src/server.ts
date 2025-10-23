@@ -18,6 +18,7 @@ import settingsRoutes from './routes/settings';
 import mediaRoutes from './routes/media';
 import dashboardRoutes from './routes/dashboard';
 import tenantRoutes from './routes/tenants';
+import blogRoutes from './routes/blog';
 
 dotenv.config();
 
@@ -68,6 +69,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/tenants', tenantRoutes);
+app.use('/api/blog', blogRoutes);
 
 // Serve uploaded files statically with CORS headers
 app.use('/uploads', (req, res, next) => {

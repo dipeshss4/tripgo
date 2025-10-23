@@ -63,13 +63,14 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Hotels */}
+          {/* Hotels & Resources */}
           <div>
-            <h4 className="text-white font-semibold">Hotels</h4>
+            <h4 className="text-white font-semibold">Hotels & Resources</h4>
             <ul className="mt-3 space-y-2 text-sm">
               <li><a href="/hotels/luxury-beach-resort" className="hover:text-white">Luxury Beach Resort</a></li>
               <li><a href="/hotels/mountain-retreat" className="hover:text-white">Mountain Retreat</a></li>
               <li><a href="/hotels/budget-friendly-hotel" className="hover:text-white">Budget-Friendly Hotel</a></li>
+              <li><a href="/blog" className="hover:text-white font-medium">Travel Blog</a></li>
             </ul>
           </div>
 
@@ -106,6 +107,7 @@ export default function Footer() {
             <a href="/privacy" className="hover:text-white">Privacy</a>
             <a href="/terms" className="hover:text-white">Terms</a>
             <a href="/contact" className="hover:text-white">Contact</a>
+            <a href="/blog" className="hover:text-white">Blog</a>
           </div>
         </div>
       </div>

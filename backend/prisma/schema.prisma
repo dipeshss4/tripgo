@@ -29,6 +29,7 @@ model Tenant {
   departments Department[]
   siteSettings SiteSetting[]
   mediaFiles  MediaFile[]
+  blogs       Blog[]
 }
 
 model User {
@@ -51,6 +52,8 @@ model User {
   employee    Employee?
   reviews     Review[]
   mediaFiles  MediaFile[]
+  blogs       Blog[]
+  blogComments BlogComment[]
 }
 
 model Cruise {
@@ -334,6 +337,49 @@ model MediaFile {
   @@index([category])
   @@index([tenantId])
   @@index([uploadedBy])
+}
+
+model Blog {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String   // Main content
+  excerpt     String?  // Short description/summary
+  featuredImage String? // Main blog image
+  category    String?  // Blog category (Travel Tips, Destinations, etc.)
+  tags        String[] // Tags for filtering
+  published   Boolean  @default(false)
+  publishedAt DateTime?
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  viewCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  comments    BlogComment[]
+
+  @@index([slug])
+  @@index([published])
+  @@index([tenantId])
+  @@index([authorId])
+}
+
+model BlogComment {
+  id        String   @id @default(cuid())
+  content   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  approved  Boolean  @default(false) // For moderation
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([blogId])
+  @@index([userId])
 }
 
 // Enums

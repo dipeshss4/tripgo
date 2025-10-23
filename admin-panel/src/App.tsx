@@ -21,6 +21,7 @@ import SystemSettingsPage from './pages/SystemSettingsPage'
 import AdminContentPage from './pages/AdminContentPage'
 import AdminOverviewPage from './pages/AdminOverviewPage'
 import APITestingPage from './pages/APITestingPage'
+import BlogPage from './pages/BlogPage'
 
 function App() {
   return (
@@ -109,6 +110,14 @@ function App() {
           element={
             <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN']}>
               <AdminContentPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="blog"
+          element={
+            <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN']}>
+              <BlogPage />
             </ProtectedRoute>
           }
         />

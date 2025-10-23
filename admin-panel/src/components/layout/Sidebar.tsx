@@ -16,6 +16,7 @@ import {
   ArrowRightOnRectangleIcon,
   ChartPieIcon,
   CommandLineIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline'
 
 const Sidebar: React.FC = () => {
@@ -74,6 +75,12 @@ const Sidebar: React.FC = () => {
       name: 'Content Management',
       href: '/content',
       icon: FolderIcon,
+      roles: ['SUPER_ADMIN', 'ADMIN'],
+    },
+    {
+      name: 'Blog',
+      href: '/blog',
+      icon: PencilSquareIcon,
       roles: ['SUPER_ADMIN', 'ADMIN'],
     },
     {
