@@ -69,6 +69,8 @@ app.use(cors({
       'http://localhost:3001',
       'http://localhost:3002',
       'http://localhost:3003',
+      'http://162.159.140.98',
+      'https://162.159.140.98',
       process.env.FRONTEND_URL
     ].filter(Boolean);
 
