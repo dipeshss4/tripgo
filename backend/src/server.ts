@@ -38,7 +38,7 @@ app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP for development
 }));
 app.use(cors({
-  origin: ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3000', 'http://162.159.140.98', 'https://162.159.140.98'],
+  origin: ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3000', 'http://162.159.140.98', 'https://162.159.140.98', 'https://sea-turtle-app-lou7y.ondigitalocean.app'],
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
