@@ -8,8 +8,10 @@ import { useApi } from "../../../components/hooks/useApi";
 
 /* ——— Page ——— */
 export default function CheckoutCruise({ params }) {
-  // Check if params.slug looks like an ID (starts with 'c' and has long alphanumeric string)
-  const isId = params.slug && params.slug.match(/^c[a-z0-9]{20,}$/);
+  // Check if params.slug looks like an ID (numeric or starts with 'c' and has long alphanumeric string)
+  const isId = params.slug && (params.slug.match(/^[0-9]+$/) || params.slug.match(/^c[a-z0-9]{20,}$/));
+
+  console.log('Checkout Debug:', { slug: params.slug, isId, willCall: isId ? 'getById' : 'getBySlug' });
 
   const { data: cruiseData, loading: cruiseLoading, error: cruiseError } = useApi(
     () => isId ? cruiseApi.getById(params.slug) : cruiseApi.getBySlug(params.slug),
@@ -17,6 +19,8 @@ export default function CheckoutCruise({ params }) {
   );
 
   const cruise = cruiseData?.data;
+
+  console.log('Cruise Data:', { cruiseData, cruise, error: cruiseError });
 
   // State
   const [step, setStep] = useState(1); // 1: Details, 2: Payment, 3: Confirm

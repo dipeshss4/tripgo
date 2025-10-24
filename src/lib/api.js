@@ -112,8 +112,14 @@ export const cruiseApi = {
       pagination: response.data?.pagination || response.pagination
     };
   },
-  getById: (id) => apiRequestWithRetry(`/cruises/${id}`),
-  getBySlug: (slug) => apiRequestWithRetry(`/cruises/${slug}`),
+  getById: (id) => {
+    console.log('cruiseApi.getById called with:', id);
+    return apiRequestWithRetry(`/cruises/${id}`);
+  },
+  getBySlug: (slug) => {
+    console.log('cruiseApi.getBySlug called with:', slug);
+    return apiRequestWithRetry(`/cruises/${slug}`);
+  },
   getReviews: (id) => apiRequestWithRetry(`/cruises/${id}/reviews`),
   checkAvailability: (id, params) => apiRequestWithRetry(`/cruises/${id}/availability`, {
     method: 'POST',
@@ -179,6 +185,22 @@ export const bookingApi = {
   getById: (id, token) => apiRequest(`/bookings/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   }),
+};
+
+export const mediaApi = {
+  getAll: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const response = await apiRequestWithRetry(`/media${query ? `?${query}` : ''}`);
+    return {
+      data: response.data?.media || response.data || [],
+      pagination: response.data?.pagination || response.pagination
+    };
+  },
+  getVideos: async (params = {}) => {
+    const videoParams = { ...params, category: 'VIDEO' };
+    return mediaApi.getAll(videoParams);
+  },
+  getById: (id) => apiRequestWithRetry(`/media/${id}`),
 };
 
 export { ApiError };

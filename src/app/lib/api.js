@@ -51,6 +51,7 @@ export const cruiseApi = {
       pagination: response.data?.pagination || response.pagination
     };
   },
+  getById: (id) => apiRequest(`/cruises/${id}`),
   getBySlug: (slug) => apiRequest(`/cruises/${slug}`),
   getReviews: (id) => apiRequest(`/cruises/${id}/reviews`),
   checkAvailability: (id, params = {}) => {

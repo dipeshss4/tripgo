@@ -44,16 +44,17 @@ export default function HeroSection() {
         muted
         playsInline
         preload="auto"
-        poster="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1600&q=80&auto=format&fit=crop"
+        poster="https://images.unsplash.com/photo-1548574505-5e239809ee19?w=1600&q=80&auto=format&fit=crop"
         onLoadedData={() => {
           if (videoRef.current) {
             videoRef.current.play().catch(console.error);
           }
         }}
       >
-        <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4" />
-        <source src="https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4" type="video/mp4" />
-        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+        {/* Luxury Cruise Ship Videos */}
+        <source src="https://cdn.pixabay.com/video/2022/08/19/128588-742816042_large.mp4" type="video/mp4" />
+        <source src="https://cdn.pixabay.com/video/2020/08/13/47808-450878975_large.mp4" type="video/mp4" />
+        <source src="https://cdn.pixabay.com/video/2022/03/24/112421-690863878_large.mp4" type="video/mp4" />
       </video>
 
       {/* Video Overlay */}

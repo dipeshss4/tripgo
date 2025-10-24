@@ -1,73 +1,175 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Play, Pause, Volume2, VolumeX, ChevronLeft, ChevronRight, Eye, Heart, Share } from "lucide-react";
+import { mediaApi } from "../../lib/api";
+import { useApi } from "./hooks/useApi";
+
+// SVG Icon Components (replacing lucide-react)
+const Play = ({ className }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M8 5v14l11-7z" />
+  </svg>
+);
+
+const Pause = ({ className }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+  </svg>
+);
+
+const Volume2 = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+  </svg>
+);
+
+const VolumeX = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <line x1="23" y1="9" x2="17" y2="15" />
+    <line x1="17" y1="9" x2="23" y2="15" />
+  </svg>
+);
+
+const ChevronLeft = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+
+const ChevronRight = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
+const Eye = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const Heart = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+  </svg>
+);
+
+const Share = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+  </svg>
+);
 
 export default function VideoReels() {
   const [playingId, setPlayingId] = useState(null);
   const [mutedId, setMutedId] = useState(null);
   const scrollerRef = useRef(null);
 
-  const reels = [
+  // Fetch videos from backend
+  const { data: videosData, loading, error } = useApi(() => mediaApi.getVideos({ limit: 8 }));
+  const backendVideos = videosData?.data || [];
+
+  // Map backend data with fallback
+  const reelsData = backendVideos.length > 0
+    ? backendVideos.map((video, index) => ({
+        id: video.id,
+        title: video.title || `Reel ${index + 1}`,
+        description: video.description || "Discover amazing experiences",
+        src: video.url,
+        poster: video.thumbnailUrl || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=60&auto=format&fit=crop",
+        duration: video.duration ? `${Math.floor(video.duration / 60)}:${String(Math.floor(video.duration % 60)).padStart(2, '0')}` : "1:00",
+        views: `${(Math.random() * 30 + 10).toFixed(1)}K`,
+        category: video.tags?.[0] || "Relaxation",
+      }))
+    : [];
+
+  const reels = reelsData.length > 0 ? reelsData : [
     {
       id: 1,
-      title: "Ocean Paradise",
-      description: "Breathtaking sunset views from the pool deck",
-      src: "https://cdn.coverr.co/videos/coverr-sunset-by-the-sea-2600/1080p.mp4",
-      poster: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=60&auto=format&fit=crop",
-      duration: "0:45",
-      views: "12.5K",
+      title: "Sunset Cruise Magic",
+      description: "Golden hour sailing across the Mediterranean",
+      src: "https://videos.pexels.com/video-files/1448735/1448735-hd_1920_1080_24fps.mp4",
+      poster: "https://images.unsplash.com/photo-1548574505-5e239809ee19?w=1200&q=60&auto=format&fit=crop",
+      duration: "0:52",
+      views: "18.2K",
       category: "Relaxation"
     },
     {
       id: 2,
-      title: "Culinary Excellence",
-      description: "World-class dining experiences onboard",
-      src: "https://cdn.coverr.co/videos/coverr-dinner-5517/1080p.mp4",
-      poster: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1200&q=60&auto=format&fit=crop",
-      duration: "1:20",
-      views: "8.9K",
-      category: "Dining"
-    },
-    {
-      id: 3,
-      title: "Tropical Adventure",
-      description: "Explore pristine beaches and crystal waters",
-      src: "https://cdn.coverr.co/videos/coverr-tropical-paradise-5748/1080p.mp4",
-      poster: "https://images.unsplash.com/photo-1526481280698-8fcc13fd87f8?w=1200&q=60&auto=format&fit=crop",
-      duration: "2:10",
-      views: "24.3K",
+      title: "Island Paradise",
+      description: "Crystal clear waters and tropical beaches",
+      src: "https://videos.pexels.com/video-files/2169307/2169307-uhd_2560_1440_30fps.mp4",
+      poster: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=60&auto=format&fit=crop",
+      duration: "1:15",
+      views: "32.4K",
       category: "Adventure"
     },
     {
-      id: 4,
-      title: "Vibrant Nightlife",
-      description: "Dance the night away under the stars",
-      src: "https://cdn.coverr.co/videos/coverr-nightlife-2136/1080p.mp4",
-      poster: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=60&auto=format&fit=crop",
-      duration: "1:35",
-      views: "16.7K",
-      category: "Entertainment"
+      id: 3,
+      title: "Luxury Yacht Life",
+      description: "Experience ultimate sophistication at sea",
+      src: "https://videos.pexels.com/video-files/3571264/3571264-uhd_2560_1440_30fps.mp4",
+      poster: "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=1200&q=60&auto=format&fit=crop",
+      duration: "1:28",
+      views: "27.6K",
+      category: "Dining"
     },
     {
-      id: 5,
-      title: "Luxury Spa",
-      description: "Rejuvenate with premium wellness treatments",
-      src: "https://cdn.coverr.co/videos/coverr-spa-relaxation-3421/1080p.mp4",
-      poster: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&q=60&auto=format&fit=crop",
-      duration: "1:45",
-      views: "9.2K",
+      id: 4,
+      title: "Coastal Wonders",
+      description: "Breathtaking views of rugged coastlines",
+      src: "https://videos.pexels.com/video-files/2169542/2169542-uhd_2560_1440_30fps.mp4",
+      poster: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1200&q=60&auto=format&fit=crop",
+      duration: "1:42",
+      views: "21.8K",
       category: "Wellness"
     },
     {
+      id: 5,
+      title: "Ocean Serenity",
+      description: "Peaceful waves and endless horizons",
+      src: "https://videos.pexels.com/video-files/1409899/1409899-hd_1920_1080_25fps.mp4",
+      poster: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200&q=60&auto=format&fit=crop",
+      duration: "1:56",
+      views: "15.3K",
+      category: "Relaxation"
+    },
+    {
       id: 6,
-      title: "Epic Adventures",
-      description: "Thrilling excursions and water sports",
-      src: "https://cdn.coverr.co/videos/coverr-adventure-sports-2890/1080p.mp4",
+      title: "Tropical Escape",
+      description: "Palm trees swaying in the island breeze",
+      src: "https://videos.pexels.com/video-files/2169880/2169880-uhd_2560_1440_30fps.mp4",
       poster: "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1200&q=60&auto=format&fit=crop",
-      duration: "2:30",
-      views: "31.8K",
+      duration: "2:03",
+      views: "38.9K",
       category: "Sports"
+    },
+    {
+      id: 7,
+      title: "Harbor Sunset",
+      description: "Docking at picturesque Mediterranean ports",
+      src: "https://videos.pexels.com/video-files/857251/857251-hd_1920_1080_24fps.mp4",
+      poster: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=60&auto=format&fit=crop",
+      duration: "1:38",
+      views: "24.7K",
+      category: "Entertainment"
+    },
+    {
+      id: 8,
+      title: "Beach Paradise",
+      description: "White sands and turquoise waters await",
+      src: "https://videos.pexels.com/video-files/1093662/1093662-hd_1920_1080_25fps.mp4",
+      poster: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=60&auto=format&fit=crop",
+      duration: "1:22",
+      views: "41.2K",
+      category: "Adventure"
     }
   ];
 
@@ -80,13 +182,35 @@ export default function VideoReels() {
     "Sports": "from-yellow-500 to-orange-500"
   };
 
-  const handlePlayPause = (id, videoRef) => {
-    if (playingId === id) {
-      videoRef.pause();
+  const handlePlayPause = async (id, videoRef) => {
+    try {
+      if (playingId === id) {
+        await videoRef.pause();
+        setPlayingId(null);
+      } else {
+        // Pause all other videos first
+        const allVideos = document.querySelectorAll('video');
+        allVideos.forEach(video => {
+          if (video !== videoRef && !video.paused) {
+            video.pause();
+          }
+        });
+
+        // Set playing state first to prevent race conditions
+        setPlayingId(id);
+
+        // Play the selected video
+        const playPromise = videoRef.play();
+        if (playPromise !== undefined) {
+          await playPromise.catch(error => {
+            console.log('Video play interrupted:', error);
+            setPlayingId(null);
+          });
+        }
+      }
+    } catch (error) {
+      console.log('Error handling video play/pause:', error);
       setPlayingId(null);
-    } else {
-      videoRef.play();
-      setPlayingId(id);
     }
   };
 
@@ -215,6 +339,9 @@ export default function VideoReels() {
                         el.onloadedmetadata = () => {
                           el.muted = mutedId === reel.id;
                         };
+                        el.onerror = (e) => {
+                          console.log('Video load error:', e);
+                        };
                       }
                     }}
                     className="absolute inset-0 h-full w-full object-cover group-hover:scale-110 transition-transform duration-1000 animate-prismatic"
@@ -223,7 +350,11 @@ export default function VideoReels() {
                     preload="metadata"
                     poster={reel.poster}
                     onPlay={() => setPlayingId(reel.id)}
-                    onPause={() => setPlayingId(null)}
+                    onPause={() => {
+                      if (playingId === reel.id) {
+                        setPlayingId(null);
+                      }
+                    }}
                   >
                     <source src={reel.src} type="video/mp4" />
                   </video>

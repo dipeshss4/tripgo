@@ -1,5 +1,5 @@
 import HeroSection from "./components/HeroSection";
-import PopularCruisesStatic from "./components/PopularCruisesStatic";
+import PopularCruises from "./components/PopularCruises";
 import CruiseShipSection from "./components/CruiseShipSection";
 import PopularHotels from "./components/PopularHotels";
 import PopularTravelPackages from "./components/PopularTravelPackages";
@@ -13,10 +13,11 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
-      <PopularCruisesStatic />
+      <PopularCruises />
+      <CruiseShipSection />
       <PopularHotels />
       <PopularTravelPackages />
-      <CruiseShipSection />
+
       <DiscoverWeekly />
       {/* <PopularDestinations /> */}
       <VideoShowcase />

@@ -6,10 +6,26 @@ import {useAutoplayOnView} from "./hooks/useAutoplayOnView";
 
 export default function VideoCard({ item, onOpen }) {
   const vidRef = useAutoplayOnView();
+
+  const handleVideoError = (e) => {
+    console.log('Video failed to load:', item.title);
+    // Optionally hide the video or show a fallback
+  };
+
   return (
     <div className="group overflow-hidden rounded-2xl bg-white shadow ring-1 ring-black/5">
       <div className="relative">
-        <video ref={vidRef} className="h-48 w-full object-cover" playsInline muted loop preload="metadata" poster={item.poster} onClick={() => onOpen(item)}>
+        <video
+          ref={vidRef}
+          className="h-48 w-full object-cover"
+          playsInline
+          muted
+          loop
+          preload="metadata"
+          poster={item.poster}
+          onClick={() => onOpen(item)}
+          onError={handleVideoError}
+        >
           {item.srcWebm && <source src={item.srcWebm} type="video/webm" />}
           <source src={item.srcMp4} type="video/mp4" />
         </video>

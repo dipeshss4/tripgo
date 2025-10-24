@@ -127,13 +127,13 @@ const DEFAULTS = {
 };
 
 export default function CruiseDetail({ params }) {
-  // Use real API calls
+  // Use real API calls - use getById since seeders don't create slugs
   const {
     data: cruise,
     loading,
     error,
     refetch
-  } = useApi(() => cruiseApi.getBySlug(params.slug), [params.slug]);
+  } = useApi(() => cruiseApi.getById(params.slug), [params.slug]);
 
   // Get route data from backend API
   const {
