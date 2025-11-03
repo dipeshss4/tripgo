@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import adminAuthRoutes from './routes/adminAuth';
 import cruiseRoutes from './routes/cruises';
+import cruiseCategoryRoutes from './routes/cruiseCategories';
+import cruiseDepartureRoutes from './routes/cruiseDepartures';
 import hotelRoutes from './routes/hotels';
 import packageRoutes from './routes/packages';
 import bookingRoutes from './routes/bookings';
@@ -57,6 +59,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/cruises', cruiseRoutes);
+app.use('/api/cruise-categories', cruiseCategoryRoutes);
+app.use('/api/cruise-departures', cruiseDepartureRoutes);
 app.use('/api/hotels', hotelRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/bookings', bookingRoutes);

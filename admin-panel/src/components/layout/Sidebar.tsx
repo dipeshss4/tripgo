@@ -17,6 +17,7 @@ import {
   ChartPieIcon,
   CommandLineIcon,
   PencilSquareIcon,
+  RectangleGroupIcon,
 } from '@heroicons/react/24/outline'
 
 const Sidebar: React.FC = () => {
@@ -57,6 +58,12 @@ const Sidebar: React.FC = () => {
       name: 'Cruises',
       href: '/cruises',
       icon: MapIcon,
+      roles: ['SUPER_ADMIN', 'ADMIN'],
+    },
+    {
+      name: 'Cruise Categories',
+      href: '/cruise-categories',
+      icon: RectangleGroupIcon,
       roles: ['SUPER_ADMIN', 'ADMIN'],
     },
     {

@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cruiseApi, hotelApi, packageApi } from "../../lib/api";
+import { getCruiseCategories, getCruisesByCategory } from "../../lib/cruiseApi";
 
 /* ---------- Component ---------- */
 export default function Navbar() {
@@ -26,7 +27,9 @@ export default function Navbar() {
   const [showHotels, setShowHotels] = useState(false);
   const [showPackages, setShowPackages] = useState(false);
 
-  const [cruiseList, setCruiseList] = useState([]);
+  const [cruiseCategories, setCruiseCategories] = useState([]);
+  const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [categoryCruises, setCategoryCruises] = useState({});
   const [hotelList, setHotelList] = useState([]);
   const [packageList, setPackageList] = useState([]);
 
@@ -53,35 +56,46 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Static fallback data
-  const getStaticCruises = () => [
-    { name: "Ocean Pearl", image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=60&auto=format&fit=crop", href: "/cruises" },
-    { name: "Caribbean Queen", image: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&q=60&auto=format&fit=crop", href: "/cruises" },
-    { name: "Sunset Voyager", image: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&q=60&auto=format&fit=crop", href: "/cruises" },
-    { name: "Atlantic Dream", image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=60&auto=format&fit=crop", href: "/cruises" },
-    { name: "Tropical Breeze", image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&q=60&auto=format&fit=crop", href: "/cruises" },
-    { name: "Pacific Jewel", image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&q=60&auto=format&fit=crop", href: "/cruises" }
-  ];
-
   // API Data Fetching Functions
-  const fetchCruises = async () => {
-    if (cruiseList.length > 0) return; // Don't refetch if already loaded
+  const fetchCruiseCategories = async () => {
+    if (cruiseCategories.length > 0) return; // Don't refetch if already loaded
 
     setLoading(prev => ({ ...prev, cruises: true }));
     setError(prev => ({ ...prev, cruises: null }));
 
     try {
-      const response = await cruiseApi.getAll({ limit: 6 });
-      const cruises = response.data || [];
-      setCruiseList(cruises);
-      sessionStorage.setItem('navbar-cruises', JSON.stringify(cruises));
+      const categories = await getCruiseCategories();
+      setCruiseCategories(categories);
+      sessionStorage.setItem('navbar-cruise-categories', JSON.stringify(categories));
     } catch (err) {
-      console.error('Error fetching cruises:', err);
-      setError(prev => ({ ...prev, cruises: 'Failed to load cruises' }));
-      setCruiseList(getStaticCruises());
+      console.error('Error fetching cruise categories:', err);
+      setError(prev => ({ ...prev, cruises: 'Failed to load cruise categories' }));
     } finally {
       setLoading(prev => ({ ...prev, cruises: false }));
     }
+  };
+
+  const fetchCategoryCruises = async (categorySlug) => {
+    // Check if already loaded
+    if (categoryCruises[categorySlug]) return;
+
+    try {
+      const data = await getCruisesByCategory(categorySlug);
+      if (data && data.cruises) {
+        setCategoryCruises(prev => ({
+          ...prev,
+          [categorySlug]: data.cruises
+        }));
+      }
+    } catch (err) {
+      console.error(`Error fetching cruises for category ${categorySlug}:`, err);
+    }
+  };
+
+  const handleCategoryHover = (category) => {
+    setHoveredCategory(category.slug);
+    // Fetch cruises for this category
+    fetchCategoryCruises(category.slug);
   };
 
   const getStaticHotels = () => [
@@ -145,15 +159,15 @@ export default function Navbar() {
   // Load initial data on component mount with caching and delayed fetching
   useEffect(() => {
     // Check if data exists in sessionStorage for caching
-    const cachedCruises = sessionStorage.getItem('navbar-cruises');
+    const cachedCategories = sessionStorage.getItem('navbar-cruise-categories');
     const cachedHotels = sessionStorage.getItem('navbar-hotels');
     const cachedPackages = sessionStorage.getItem('navbar-packages');
 
-    if (cachedCruises) {
+    if (cachedCategories) {
       try {
-        setCruiseList(JSON.parse(cachedCruises));
+        setCruiseCategories(JSON.parse(cachedCategories));
       } catch (e) {
-        console.error('Error parsing cached cruises:', e);
+        console.error('Error parsing cached cruise categories:', e);
       }
     }
 
@@ -175,8 +189,8 @@ export default function Navbar() {
 
     // Only fetch if no cached data exists, and stagger the requests
     const loadData = async () => {
-      if (!cachedCruises) {
-        await fetchCruises();
+      if (!cachedCategories) {
+        await fetchCruiseCategories();
         await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
       }
 
@@ -220,8 +234,8 @@ export default function Navbar() {
     if (cruiseTimer.current) clearTimeout(cruiseTimer.current);
     setShowCruises(true);
     // Only fetch if not already loading and no data exists
-    if (!loading.cruises && cruiseList.length === 0) {
-      fetchCruises();
+    if (!loading.cruises && cruiseCategories.length === 0) {
+      fetchCruiseCategories();
     }
   };
   const closeCruises = () => { cruiseTimer.current = setTimeout(() => setShowCruises(false), 120); };
@@ -267,37 +281,102 @@ export default function Navbar() {
               <button className="inline-flex items-center gap-2 text-sm font-medium text-white/90 hover:text-white transition" aria-haspopup="true" aria-expanded={showCruises} onClick={() => setShowCruises((v) => !v)}>
                 <Ship className="h-4 w-4" /> Cruises <ChevronDown className="h-4 w-4 opacity-80" />
               </button>
-              <div className={`absolute left-0 mt-3 w-[560px] rounded-2xl border border-white/10 bg-black/80 p-4 text-white shadow-2xl backdrop-blur-md ${showCruises ? "block" : "hidden"}`} onMouseEnter={openCruises} onMouseLeave={closeCruises}>
+              <div className={`absolute left-0 mt-3 w-[420px] rounded-2xl border border-white/10 bg-black/80 p-4 text-white shadow-2xl backdrop-blur-md ${showCruises ? "block" : "hidden"}`} onMouseEnter={openCruises} onMouseLeave={closeCruises}>
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white/90">Explore ships</span>
+                  <span className="text-sm font-semibold text-white/90">Browse by Category</span>
                   <a href="/cruises" className="text-xs font-semibold text-white/80 hover:text-white">View all →</a>
                 </div>
                 {loading.cruises ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-white/60" />
-                    <span className="ml-2 text-sm text-white/60">Loading cruises...</span>
+                    <span className="ml-2 text-sm text-white/60">Loading categories...</span>
                   </div>
                 ) : error.cruises ? (
                   <div className="text-center py-4">
                     <p className="text-sm text-red-400">{error.cruises}</p>
-                    <button onClick={fetchCruises} className="mt-2 text-xs text-white/80 hover:text-white">Try again</button>
+                    <button onClick={fetchCruiseCategories} className="mt-2 text-xs text-white/80 hover:text-white">Try again</button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    {cruiseList.map((c, index) => (
-                      <a key={c.href || index} href={c.href} className="group/item flex items-center gap-3 rounded-lg p-2 hover:bg-white/10 transition" onClick={() => setShowCruises(false)}>
-                        <img src={c.image} alt={c.name} className="h-12 w-12 rounded object-cover ring-1 ring-white/10" onError={(e) => {
-                          // Prevent infinite loops by checking if already using fallback
-                          if (!e.target.src.includes('placeholder')) {
-                            e.target.src = "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=48&h=48&fit=crop&crop=center";
-                          }
-                        }} />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-white">{c.name}</p>
-                          <p className="truncate text-xs text-white/70">View details</p>
+                  <div className="space-y-2">
+                    {cruiseCategories.map((category) => {
+                      const catCruises = categoryCruises[category.slug] || [];
+                      return (
+                        <div
+                          key={category.id}
+                          className="relative group/cat"
+                          onMouseEnter={() => handleCategoryHover(category)}
+                          onMouseLeave={() => setHoveredCategory(null)}
+                        >
+                          <a
+                            href={`/cruises?category=${category.slug}`}
+                            className="flex items-center gap-3 rounded-lg p-3 hover:bg-white/10 transition border border-white/5 hover:border-white/20"
+                            onClick={() => setShowCruises(false)}
+                          >
+                            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-2xl">
+                              {category.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="truncate text-sm font-semibold text-white">{category.name}</p>
+                              <p className="truncate text-xs text-white/60">{category.description}</p>
+                            </div>
+                            <svg className="w-4 h-4 text-white/40 group-hover/cat:text-white/80 group-hover/cat:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </a>
+
+                          {/* Submenu with cruises */}
+                          {hoveredCategory === category.slug && (
+                            <div className="absolute left-full top-0 ml-2 w-[320px] rounded-xl border border-white/10 bg-black/90 p-3 shadow-2xl backdrop-blur-md z-50">
+                              <div className="mb-2 flex items-center gap-2">
+                                <span className="text-lg">{category.icon}</span>
+                                <span className="text-xs font-semibold text-white/90">{category.name}</span>
+                              </div>
+                              {catCruises.length === 0 ? (
+                                <div className="flex items-center justify-center py-4">
+                                  <Loader2 className="w-4 h-4 animate-spin text-white/60" />
+                                  <span className="ml-2 text-xs text-white/60">Loading...</span>
+                                </div>
+                              ) : (
+                                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                  {catCruises.slice(0, 5).map((cruise) => (
+                                    <a
+                                      key={cruise.id}
+                                      href={`/cruises/${cruise.slug || cruise.id}`}
+                                      className="flex items-center gap-2 rounded-lg p-2 hover:bg-white/10 transition"
+                                      onClick={() => setShowCruises(false)}
+                                    >
+                                      <img
+                                        src={cruise.images?.[0] || "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=48&h=48&fit=crop&crop=center"}
+                                        alt={cruise.name}
+                                        className="w-10 h-10 rounded object-cover ring-1 ring-white/10"
+                                        onError={(e) => {
+                                          if (!e.target.src.includes('placeholder')) {
+                                            e.target.src = "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=48&h=48&fit=crop&crop=center";
+                                          }
+                                        }}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="truncate text-xs font-medium text-white">{cruise.name}</p>
+                                        <p className="truncate text-xs text-white/60">${cruise.price || '899'}</p>
+                                      </div>
+                                    </a>
+                                  ))}
+                                  {catCruises.length > 5 && (
+                                    <a
+                                      href={`/cruises?category=${category.slug}`}
+                                      className="block text-center text-xs text-blue-400 hover:text-blue-300 py-2"
+                                      onClick={() => setShowCruises(false)}
+                                    >
+                                      View all {catCruises.length} cruises →
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </a>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

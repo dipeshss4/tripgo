@@ -33,13 +33,17 @@ export default function SearchPage() {
       if (searchQuery.destination) {
         searchParams.destination = searchQuery.destination;
         searchParams.city = searchQuery.destination;
+        searchParams.search = searchQuery.destination;
+      }
+      if (searchQuery.activity) {
+        searchParams.search = searchQuery.activity;
       }
 
       // Fetch real data from APIs
       const [cruisesRes, hotelsRes, packagesRes] = await Promise.allSettled([
-        cruiseApi.getAll({ limit: 6, ...searchParams }),
-        hotelApi.getAll({ limit: 6, ...searchParams }),
-        packageApi.getAll({ limit: 6, ...searchParams })
+        cruiseApi.getAll({ limit: 12, ...searchParams }),
+        hotelApi.getAll({ limit: 12, ...searchParams }),
+        packageApi.getAll({ limit: 12, ...searchParams })
       ]);
 
       const results = {

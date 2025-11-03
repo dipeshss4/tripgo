@@ -24,7 +24,8 @@ import {
   generateThumbnails,
   getPendingMediaApproval,
   approveMedia,
-  rejectMedia
+  rejectMedia,
+  importYouTubeVideo
 } from '@/controllers/mediaControllerNew';
 import { authenticateToken } from '@/middleware/auth';
 import {
@@ -54,6 +55,9 @@ router.get('/folders', getFolders);
 // Upload routes
 router.post('/upload', uploadSingleMW, uploadSingle);
 router.post('/upload-multiple', uploadMultipleMW, uploadFiles);
+
+// YouTube video import
+router.post('/import-youtube', importYouTubeVideo);
 
 // Individual file operations
 router.get('/:id', getMediaFile);

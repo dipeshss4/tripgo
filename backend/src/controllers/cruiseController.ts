@@ -17,8 +17,10 @@ export const getCruises = async (req: Request, res: Response, next: NextFunction
       type,
       rating,
       sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = req.query as CruiseFilters;
+      sortOrder = 'desc',
+      destination,
+      search
+    } = req.query as CruiseFilters & { destination?: string; search?: string };
 
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
@@ -32,6 +34,25 @@ export const getCruises = async (req: Request, res: Response, next: NextFunction
     if (type) where.type = { contains: type, mode: 'insensitive' };
     if (rating) where.rating = { gte: parseFloat(rating) };
 
+    // Add destination search
+    if (destination) {
+      where.OR = [
+        { destination: { contains: destination, mode: 'insensitive' } },
+        { departure: { contains: destination, mode: 'insensitive' } },
+        { departurePort: { contains: destination, mode: 'insensitive' } }
+      ];
+    }
+
+    // Add general text search
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { destination: { contains: search, mode: 'insensitive' } },
+        { departure: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
     const [cruises, total] = await Promise.all([
       prisma.cruise.findMany({
         where,
@@ -39,8 +60,30 @@ export const getCruises = async (req: Request, res: Response, next: NextFunction
         take: limitNum,
         orderBy: { [sortBy]: sortOrder },
         include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              icon: true
+            }
+          },
+          departures: {
+            where: {
+              departureDate: {
+                gte: new Date()
+              }
+            },
+            orderBy: {
+              departureDate: 'asc'
+            },
+            take: 5
+          },
           _count: {
-            select: { reviews: true }
+            select: {
+              reviews: true,
+              departures: true
+            }
           }
         }
       }),
@@ -80,6 +123,27 @@ export const getCruiseBySlug = async (req: Request, res: Response, next: NextFun
     const cruise = await prisma.cruise.findUnique({
       where: { id: slug },
       include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            icon: true
+          }
+        },
+        departures: {
+          where: {
+            departureDate: {
+              gte: new Date()
+            },
+            status: {
+              not: 'CANCELLED'
+            }
+          },
+          orderBy: {
+            departureDate: 'asc'
+          }
+        },
         reviews: {
           include: {
             user: {
@@ -93,7 +157,10 @@ export const getCruiseBySlug = async (req: Request, res: Response, next: NextFun
           orderBy: { createdAt: 'desc' }
         },
         _count: {
-          select: { reviews: true }
+          select: {
+            reviews: true,
+            departures: true
+          }
         }
       }
     });

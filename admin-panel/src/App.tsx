@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage'
 import UsersPage from './pages/UsersPage'
 import BookingsPage from './pages/BookingsPage'
 import CruisesPage from './pages/CruisesPage'
+import CruiseCategoriesPage from './pages/CruiseCategoriesPage'
 import HotelsPage from './pages/HotelsPage'
 import PackagesPage from './pages/PackagesPage'
 import MediaLibraryPage from './pages/MediaLibraryPage'
@@ -60,6 +61,14 @@ function App() {
           element={
             <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN']}>
               <CruisesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="cruise-categories"
+          element={
+            <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN']}>
+              <CruiseCategoriesPage />
             </ProtectedRoute>
           }
         />

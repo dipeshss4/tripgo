@@ -1,6 +1,7 @@
 import HeroSection from "./components/HeroSection";
 import PopularCruises from "./components/PopularCruises";
-import CruiseShipSection from "./components/CruiseShipSection";
+import CruiseShipSection from "./components/CruiseShipSectionEnhanced";
+import CruiseByCategorySection from "./components/CruiseByCategorySection";
 import PopularHotels from "./components/PopularHotels";
 import PopularTravelPackages from "./components/PopularTravelPackages";
 import DiscoverWeekly from "./components/DiscoverWeekly";
@@ -14,7 +15,7 @@ export default function HomePage() {
     <>
       <HeroSection />
       <PopularCruises />
-      <CruiseShipSection />
+      <CruiseByCategorySection />
       <PopularHotels />
       <PopularTravelPackages />
 

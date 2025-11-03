@@ -71,6 +71,7 @@ app.use(cors({
       'http://localhost:3003',
       'http://162.159.140.98',
       'https://162.159.140.98',
+      'https://sea-turtle-app-lou7y.ondigitalocean.app',
       process.env.FRONTEND_URL
     ].filter(Boolean);
 

@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
+import { useQuery } from '@tanstack/react-query'
 import { Cruise, CruiseItinerary } from '../../types'
 import { CreateCruiseData, UpdateCruiseData } from '../../services/cruises'
 import { MediaFile } from '../../services/media'
+import { cruiseCategoryService } from '../../services/cruiseCategories'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import TextArea from '../ui/TextArea'
 import Select from '../ui/Select'
 import MediaPicker from '@/components/media/MediaPicker'
-import { PlusIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, XMarkIcon, PhotoIcon, VideoCameraIcon } from '@heroicons/react/24/outline'
 
 interface CruiseFormProps {
   cruise?: Cruise
@@ -31,7 +33,14 @@ const CruiseForm: React.FC<CruiseFormProps> = ({
     duration: 7,
     capacity: 100,
     price: 0,
+    categoryId: '',
     isActive: true,
+  })
+
+  // Fetch categories for the dropdown
+  const { data: categoriesData } = useQuery({
+    queryKey: ['cruise-categories-active'],
+    queryFn: () => cruiseCategoryService.getCategories({ isActive: true, limit: 100 }),
   })
 
   const [amenities, setAmenities] = useState<string[]>([])
@@ -41,6 +50,12 @@ const CruiseForm: React.FC<CruiseFormProps> = ({
 
   const [selectedImages, setSelectedImages] = useState<MediaFile[]>([])
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false)
+
+  const [selectedTeaserVideos, setSelectedTeaserVideos] = useState<Array<{ title: string; file: MediaFile }>>([])
+  const [isTeaserPickerOpen, setIsTeaserPickerOpen] = useState(false)
+
+  const [selectedGalleryVideos, setSelectedGalleryVideos] = useState<MediaFile[]>([])
+  const [isGalleryPickerOpen, setIsGalleryPickerOpen] = useState(false)
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -54,6 +69,7 @@ const CruiseForm: React.FC<CruiseFormProps> = ({
         duration: cruise.duration || 7,
         capacity: cruise.capacity || 100,
         price: cruise.price || 0,
+        categoryId: (cruise as any).categoryId || '',
         isActive: cruise.isActive ?? true,
       })
       setAmenities(cruise.amenities || [])
@@ -78,6 +94,56 @@ const CruiseForm: React.FC<CruiseFormProps> = ({
           updatedAt: ''
         }))
         setSelectedImages(imageFiles)
+      }
+
+      // Load existing videos
+      if (cruise.videos) {
+        const videosData = cruise.videos as any
+
+        // Load teaser videos
+        if (videosData.teasers && Array.isArray(videosData.teasers)) {
+          const teasers = videosData.teasers.map((teaser: any, index: number) => ({
+            title: teaser.title || '',
+            file: {
+              id: `teaser-${index}`,
+              filename: teaser.src.split('/').pop() || '',
+              originalName: teaser.title || '',
+              path: teaser.src,
+              url: teaser.src,
+              size: 0,
+              mimetype: 'video/mp4',
+              category: 'VIDEO' as const,
+              tags: [],
+              uploadedBy: '',
+              uploader: { firstName: '', lastName: '', email: '' },
+              tenantId: '',
+              createdAt: '',
+              updatedAt: ''
+            }
+          }))
+          setSelectedTeaserVideos(teasers)
+        }
+
+        // Load gallery videos
+        if (videosData.gallery && Array.isArray(videosData.gallery)) {
+          const gallery = videosData.gallery.map((videoUrl: string, index: number) => ({
+            id: `gallery-${index}`,
+            filename: videoUrl.split('/').pop() || '',
+            originalName: videoUrl.split('/').pop() || '',
+            path: videoUrl,
+            url: videoUrl,
+            size: 0,
+            mimetype: 'video/mp4',
+            category: 'VIDEO' as const,
+            tags: [],
+            uploadedBy: '',
+            uploader: { firstName: '', lastName: '', email: '' },
+            tenantId: '',
+            createdAt: '',
+            updatedAt: ''
+          }))
+          setSelectedGalleryVideos(gallery)
+        }
       }
     }
   }, [cruise])
@@ -110,11 +176,22 @@ const CruiseForm: React.FC<CruiseFormProps> = ({
     }
 
     try {
+      // Format videos data
+      const videosData = {
+        teasers: selectedTeaserVideos.map(v => ({
+          title: v.title,
+          src: v.file.url
+        })),
+        gallery: selectedGalleryVideos.map(v => v.url)
+      }
+
       const submitData = {
         ...formData,
+        categoryId: formData.categoryId || null,  // Convert empty string to null
         amenities,
         itinerary,
         images: selectedImages.map(image => image.url),
+        videos: videosData
       }
 
       await onSubmit(submitData)
@@ -174,6 +251,34 @@ const CruiseForm: React.FC<CruiseFormProps> = ({
     setSelectedImages(selectedImages.filter((_, i) => i !== index))
   }
 
+  const handleTeaserVideoSelect = (files: MediaFile[]) => {
+    const newTeasers = files.map(file => ({
+      title: file.title || file.originalName,
+      file
+    }))
+    setSelectedTeaserVideos(newTeasers)
+    setIsTeaserPickerOpen(false)
+  }
+
+  const handleGalleryVideoSelect = (files: MediaFile[]) => {
+    setSelectedGalleryVideos(files)
+    setIsGalleryPickerOpen(false)
+  }
+
+  const removeTeaserVideo = (index: number) => {
+    setSelectedTeaserVideos(selectedTeaserVideos.filter((_, i) => i !== index))
+  }
+
+  const removeGalleryVideo = (index: number) => {
+    setSelectedGalleryVideos(selectedGalleryVideos.filter((_, i) => i !== index))
+  }
+
+  const updateTeaserTitle = (index: number, title: string) => {
+    const updated = [...selectedTeaserVideos]
+    updated[index] = { ...updated[index], title }
+    setSelectedTeaserVideos(updated)
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -204,6 +309,26 @@ const CruiseForm: React.FC<CruiseFormProps> = ({
         placeholder="Enter cruise description"
         rows={3}
       />
+
+      {/* Category Select */}
+      <div>
+        <Select
+          label="Category (Optional)"
+          name="categoryId"
+          value={formData.categoryId || ''}
+          onChange={handleChange}
+          options={[
+            { value: '', label: 'No Category' },
+            ...(categoriesData?.categories || []).map(cat => ({
+              value: cat.id,
+              label: `${cat.icon ? cat.icon + ' ' : ''}${cat.name}`
+            }))
+          ]}
+        />
+        <p className="mt-1 text-sm text-gray-500">
+          Assign this cruise to a category for better organization
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
@@ -290,6 +415,99 @@ const CruiseForm: React.FC<CruiseFormProps> = ({
                   </button>
                   <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
                     {image.originalName}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Teaser Videos Section */}
+      <div>
+        <label className="label">Teaser Videos</label>
+        <p className="text-sm text-gray-500 mb-3">Featured videos displayed prominently on the cruise detail page</p>
+        <div className="space-y-3">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsTeaserPickerOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <VideoCameraIcon className="h-4 w-4" />
+            {selectedTeaserVideos.length > 0 ? 'Change Teaser Videos' : 'Select Teaser Videos'}
+          </Button>
+
+          {selectedTeaserVideos.length > 0 && (
+            <div className="space-y-3">
+              {selectedTeaserVideos.map((teaser, index) => (
+                <div key={teaser.file.id} className="border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-32 h-20 bg-gray-100 rounded overflow-hidden">
+                      <video
+                        src={teaser.file.url}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        label="Video Title"
+                        value={teaser.title}
+                        onChange={(e) => updateTeaserTitle(index, e.target.value)}
+                        placeholder="Enter video title"
+                        className="mb-2"
+                      />
+                      <p className="text-xs text-gray-500">{teaser.file.originalName}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeTeaserVideo(index)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <XMarkIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Gallery Videos Section */}
+      <div>
+        <label className="label">Gallery Videos</label>
+        <p className="text-sm text-gray-500 mb-3">Additional videos shown in the gallery section</p>
+        <div className="space-y-3">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsGalleryPickerOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <VideoCameraIcon className="h-4 w-4" />
+            {selectedGalleryVideos.length > 0 ? 'Change Gallery Videos' : 'Select Gallery Videos'}
+          </Button>
+
+          {selectedGalleryVideos.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {selectedGalleryVideos.map((video, index) => (
+                <div key={video.id} className="relative group">
+                  <div className="w-full h-24 bg-gray-100 rounded border overflow-hidden">
+                    <video
+                      src={video.url}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeGalleryVideo(index)}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <XMarkIcon className="h-3 w-3" />
+                  </button>
+                  <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded truncate max-w-[calc(100%-8px)]">
+                    {video.originalName}
                   </div>
                 </div>
               ))}
@@ -397,7 +615,7 @@ const CruiseForm: React.FC<CruiseFormProps> = ({
         </Button>
       </div>
 
-      {/* Media Picker Modal */}
+      {/* Media Picker Modal for Images */}
       <MediaPicker
         isOpen={isMediaPickerOpen}
         onClose={() => setIsMediaPickerOpen(false)}
@@ -405,6 +623,26 @@ const CruiseForm: React.FC<CruiseFormProps> = ({
         multiple={true}
         acceptedTypes={['IMAGE']}
         title="Select Cruise Images"
+      />
+
+      {/* Media Picker Modal for Teaser Videos */}
+      <MediaPicker
+        isOpen={isTeaserPickerOpen}
+        onClose={() => setIsTeaserPickerOpen(false)}
+        onSelect={handleTeaserVideoSelect}
+        multiple={true}
+        acceptedTypes={['VIDEO']}
+        title="Select Teaser Videos"
+      />
+
+      {/* Media Picker Modal for Gallery Videos */}
+      <MediaPicker
+        isOpen={isGalleryPickerOpen}
+        onClose={() => setIsGalleryPickerOpen(false)}
+        onSelect={handleGalleryVideoSelect}
+        multiple={true}
+        acceptedTypes={['VIDEO']}
+        title="Select Gallery Videos"
       />
     </form>
   )

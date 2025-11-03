@@ -686,3 +686,92 @@ export const rejectMedia = async (req: MediaRequest, res: Response, next: NextFu
     next(error);
   }
 };
+
+// YOUTUBE VIDEO IMPORT
+export const importYouTubeVideo = async (req: MediaRequest, res: Response, next: NextFunction) => {
+  try {
+    const tenantId = req.tenantId || 'default-tenant';
+    const userId = req.userId; // Can be undefined in development mode
+    const { youtubeUrl, title, description, tags, folder } = req.body;
+
+    if (!youtubeUrl) {
+      return next(createError('YouTube URL is required', 400));
+    }
+
+    // Import YouTube utility functions
+    const { extractYouTubeVideoId, getYouTubeEmbedUrl, getYouTubeThumbnailUrl, isValidYouTubeUrl } = require('@/utils/youtube');
+
+    // Validate YouTube URL
+    if (!isValidYouTubeUrl(youtubeUrl)) {
+      return next(createError('Invalid YouTube URL', 400));
+    }
+
+    // Extract video ID
+    const videoId = extractYouTubeVideoId(youtubeUrl);
+    if (!videoId) {
+      return next(createError('Could not extract video ID from YouTube URL', 400));
+    }
+
+    // Check if this video already exists
+    const existingVideo = await prisma.mediaFile.findFirst({
+      where: {
+        tenantId,
+        youtubeVideoId: videoId
+      }
+    });
+
+    if (existingVideo) {
+      return next(createError('This YouTube video has already been imported', 409));
+    }
+
+    // Generate embed URL and thumbnail
+    const embedUrl = getYouTubeEmbedUrl(videoId);
+    const thumbnailUrl = getYouTubeThumbnailUrl(videoId);
+
+    // Parse tags if provided
+    let parsedTags: string[] = [];
+    if (tags) {
+      try {
+        parsedTags = Array.isArray(tags) ? tags : JSON.parse(tags);
+      } catch {
+        parsedTags = typeof tags === 'string' ? [tags] : [];
+      }
+    }
+
+    // Create media file entry
+    const mediaFile = await prisma.mediaFile.create({
+      data: {
+        filename: `youtube-${videoId}.mp4`,
+        originalName: title || `YouTube Video ${videoId}`,
+        path: `/youtube/${videoId}`,
+        url: embedUrl,
+        size: 0, // YouTube videos don't have a file size
+        mimetype: 'video/youtube',
+        category: 'VIDEO',
+        title: title || null,
+        description: description || null,
+        tags: parsedTags,
+        folder: folder || null,
+        thumbnailUrl,
+        isYouTube: true,
+        youtubeVideoId: videoId,
+        youtubeUrl,
+        uploadedBy: userId || null,
+        tenantId
+      },
+      include: {
+        uploader: userId ? { select: { firstName: true, lastName: true, email: true } } : false
+      }
+    });
+
+    const response: ApiResponse = {
+      success: true,
+      data: mediaFile,
+      message: 'YouTube video imported successfully'
+    };
+
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};

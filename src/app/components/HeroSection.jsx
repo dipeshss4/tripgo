@@ -14,6 +14,29 @@ export default function HeroSection() {
     guests: ''
   });
 
+  // Popular destinations for the dropdown
+  const destinations = [
+    'Caribbean Islands',
+    'Mediterranean',
+    'Alaska',
+    'Hawaiian Islands',
+    'Bahamas',
+    'Greek Islands',
+    'Norwegian Fjords',
+    'Antarctica',
+    'South Pacific',
+    'Baltic Sea',
+    'Panama Canal',
+    'Australia & NZ',
+    'Eastern Caribbean',
+    'Western Caribbean',
+    'Southern Caribbean',
+    'Alaska Inside Passage',
+    'Mediterranean Sea',
+    'East Asia',
+    'New England'
+  ].sort();
+
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.play().catch(error => {
@@ -102,18 +125,27 @@ export default function HeroSection() {
             <form onSubmit={handleSearch} className="glass-morphism rounded-xl p-6 border border-white/20 shadow-2xl">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
 
-                {/* Destination Input */}
+                {/* Destination Dropdown */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-white/80">Destination</label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-cyan-400" />
-                    <input
-                      type="text"
-                      placeholder="Where to?"
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-cyan-400 pointer-events-none z-10" />
+                    <select
                       value={searchData.destination}
                       onChange={(e) => setSearchData({...searchData, destination: e.target.value})}
-                      className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400/50 transition-all"
-                    />
+                      className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400/50 transition-all appearance-none cursor-pointer"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 0.75rem center',
+                        backgroundSize: '1.25rem'
+                      }}
+                    >
+                      <option value="" className="bg-gray-800">Select destination...</option>
+                      {destinations.map(dest => (
+                        <option key={dest} value={dest} className="bg-gray-800">{dest}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -181,14 +213,15 @@ export default function HeroSection() {
           <div className="mb-12 animate-fade-in-up-delayed-2">
             <div className="flex flex-wrap justify-center gap-3">
               {[
-                { icon: "🏝️", label: "Tropical", gradient: "from-cyan-500 to-blue-500" },
-                { icon: "🏔️", label: "Mountains", gradient: "from-green-500 to-emerald-500" },
-                { icon: "🌆", label: "Cities", gradient: "from-purple-500 to-pink-500" },
-                { icon: "🏛️", label: "Culture", gradient: "from-orange-500 to-red-500" },
-                { icon: "🚢", label: "Cruises", gradient: "from-indigo-500 to-purple-500" }
+                { icon: "🏝️", label: "Tropical", activity: "Beach & Relaxation", link: "/search?activity=Beach%20%26%20Relaxation" },
+                { icon: "🏔️", label: "Mountains", activity: "Adventure & Hiking", link: "/search?activity=Adventure%20%26%20Hiking" },
+                { icon: "🌆", label: "Cities", activity: "City Exploration", link: "/search?activity=City%20Exploration" },
+                { icon: "🏛️", label: "Culture", activity: "Cultural Tours", link: "/search?activity=Cultural%20Tours" },
+                { icon: "🚢", label: "Cruises", activity: "Cruise", link: "/cruises" }
               ].map((category, index) => (
                 <button
                   key={category.label}
+                  onClick={() => router.push(category.link)}
                   className="glass-morphism hover:glass-morphism-dark border border-white/20 hover:border-white/40 text-white font-medium px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 flex items-center space-x-2"
                 >
                   <span className="text-lg">{category.icon}</span>

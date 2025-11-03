@@ -19,6 +19,9 @@ export interface MediaFile {
   height?: number;
   duration?: number;
   thumbnailUrl?: string;
+  isYouTube?: boolean;
+  youtubeVideoId?: string;
+  youtubeUrl?: string;
   uploadedBy: string;
   uploader: {
     firstName: string;
@@ -225,6 +228,23 @@ class MediaService {
   // Check if file is viewable in browser
   isViewable(file: MediaFile): boolean {
     return this.isImage(file) || this.isVideo(file) || file.mimetype === 'application/pdf';
+  }
+
+  // Check if file is a YouTube video
+  isYouTubeVideo(file: MediaFile): boolean {
+    return file.isYouTube === true;
+  }
+
+  // Import YouTube video
+  async importYouTubeVideo(data: {
+    youtubeUrl: string;
+    title?: string;
+    description?: string;
+    tags?: string[];
+    folder?: string;
+  }): Promise<MediaFile> {
+    const response = await api.post('/media/import-youtube', data);
+    return response.data.data;
   }
 }
 

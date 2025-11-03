@@ -3,309 +3,72 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Loader2, AlertCircle, Star, Calendar, MapPin, Users, Ship } from "lucide-react";
+import { Loader2, AlertCircle, Star, Calendar, MapPin, Users, Ship, TrendingUp, Sparkles, ChevronRight } from "lucide-react";
 import { cruiseApi } from "../../../lib/api";
 import { useApi } from "../../components/hooks/useApi";
+import { getCruisesByCategory } from "../../../lib/cruiseApi";
 
 // Client-only map (uses requestAnimationFrame etc.)
 const AnimatedRouteMap = dynamic(() => import("../../components/AnimatedRouteMap"), {
   ssr: false,
 });
 
-/** —————————————————————————————————————————————
- * PER-CRUISE DETAIL (VIDEO-FIRST)
- * Use only serializable values.
- * ————————————————————————————————————————————— */
-const CRUISE_DETAILS = {
-  "caribbean-cruise": {
-    poster: "https://images.unsplash.com/photo-1526481280698-8fcc13fd87f8?w=1600&q=60&auto=format&fit=crop",
-    video: "https://cdn.coverr.co/videos/coverr-ocean-waves-1595/1080p.mp4",
-    routeNames: ["Miami", "Nassau", "Cozumel", "Key West", "Miami"],
-    routeGeo: [
-      { name: "Miami", lat: 25.7617, lng: -80.1918 },
-      { name: "Nassau", lat: 25.047, lng: -77.3554 },
-      { name: "Cozumel", lat: 20.422, lng: -86.92 },
-      { name: "Key West", lat: 24.5551, lng: -81.78 },
-      { name: "Miami", lat: 25.7617, lng: -80.1918 },
-    ],
-    highlights: ["Island excursions", "Sunset deck", "Live music"],
-    // Short looping reels (all video, no images)
-    teasers: [
-      { title: "Sail Away", src: "https://cdn.coverr.co/videos/coverr-slow-waves-7284/1080p.mp4" },
-      { title: "Island Dock", src: "https://cdn.coverr.co/videos/coverr-sailing-ship-9243/1080p.mp4" },
-      { title: "Blue Hour", src: "https://cdn.coverr.co/videos/coverr-ocean-waves-1595/1080p.mp4" },
-    ],
-    galleryVideos: [
-      "https://cdn.coverr.co/videos/coverr-ocean-waves-1595/1080p.mp4",
-      "https://www.w3schools.com/html/mov_bbb.mp4",
-      "https://cdn.coverr.co/videos/coverr-sailing-ship-9243/1080p.mp4",
-    ],
-  },
-  "mediterranean-cruise": {
-    poster: "https://images.unsplash.com/photo-1499696010180-025ef6e1a8f8?w=1600&q=60&auto=format&fit=crop",
-    video: "https://cdn.coverr.co/videos/coverr-mediterranean-sea-8933/1080p.mp4",
-    routeNames: ["Barcelona", "Cannes", "Rome", "Santorini", "Athens"],
-    routeGeo: [
-      { name: "Barcelona", lat: 41.3851, lng: 2.1734 },
-      { name: "Cannes", lat: 43.5528, lng: 7.0174 },
-      { name: "Rome", lat: 41.9028, lng: 12.4964 },
-      { name: "Santorini", lat: 36.3932, lng: 25.4615 },
-      { name: "Athens", lat: 37.9838, lng: 23.7275 },
-    ],
-    highlights: ["Old towns & cuisine", "Coastal sunsets", "Historic ports"],
-    teasers: [
-      { title: "Harbor Mornings", src: "https://cdn.coverr.co/videos/coverr-sunset-over-the-harbor-6138/1080p.mp4" },
-      { title: "Coastal Run", src: "https://cdn.coverr.co/videos/coverr-coastline-5241/1080p.mp4" },
-    ],
-    galleryVideos: [
-      "https://cdn.coverr.co/videos/coverr-coastal-waves-2078/1080p.mp4",
-      "https://cdn.coverr.co/videos/coverr-sailing-ship-9243/1080p.mp4",
-    ],
-  },
-  "alaskan-cruise": {
-    poster: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1600&q=60&auto=format&fit=crop",
-    video: "https://cdn.coverr.co/videos/coverr-waterfall-valley-2076/1080p.mp4",
-    routeNames: ["Vancouver", "Ketchikan", "Juneau", "Skagway", "Vancouver"],
-    routeGeo: [
-      { name: "Vancouver", lat: 49.2827, lng: -123.1207 },
-      { name: "Ketchikan", lat: 55.3422, lng: -131.6461 },
-      { name: "Juneau", lat: 58.3019, lng: -134.4197 },
-      { name: "Skagway", lat: 59.4583, lng: -135.3139 },
-      { name: "Vancouver", lat: 49.2827, lng: -123.1207 },
-    ],
-    highlights: ["Glaciers & fjords", "Whale watching", "Scenic rail"],
-    teasers: [
-      { title: "Fjord Glide", src: "https://cdn.coverr.co/videos/coverr-icebergs-ice-3961/1080p.mp4" },
-      { title: "Wild North", src: "https://cdn.coverr.co/videos/coverr-mountain-lake-3585/1080p.mp4" },
-    ],
-    galleryVideos: [
-      "https://cdn.coverr.co/videos/coverr-icebergs-ice-3961/1080p.mp4",
-      "https://cdn.coverr.co/videos/coverr-waterfall-valley-2076/1080p.mp4",
-    ],
-  },
-};
-
-/** —————————————————————————————————————————————
- * DEFAULTS (also video-first)
- * ————————————————————————————————————————————— */
-const DEFAULTS = {
-  poster: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&q=60&auto=format&fit=crop",
-  video: "https://www.w3schools.com/html/mov_bbb.mp4",
-  routeNames: ["Embark", "At Sea", "Port", "Return"],
-  routeGeo: [
-    { name: "Embark", lat: 25.7617, lng: -80.1918 },
-    { name: "At Sea", lat: 24.0, lng: -78.0 },
-    { name: "Port", lat: 23.1, lng: -81.2 },
-    { name: "Return", lat: 25.7617, lng: -80.1918 },
-  ],
-  highlights: ["Pool deck", "Evening shows", "Buffet & dining"],
-  cabins: [
-    { name: "Interior", size: "16–18 m²", perks: ["Queen/Twin", "Smart TV"] },
-    { name: "Oceanview", size: "18–20 m²", perks: ["Sea window", "Mini bar"] },
-    { name: "Balcony", size: "20–24 m²", perks: ["Private balcony", "Sofa"] },
-    { name: "Suite", size: "30–45 m²", perks: ["Concierge", "Lounge access"] },
-  ],
-  includes: [
-    "All meals in main dining & buffet",
-    "Evening entertainment",
-    "Pools & fitness center",
-    "Kids & teens programs",
-    "Port taxes & fees",
-  ],
-  faq: [
-    { q: "Do I need a passport?", a: "International ports typically require a passport. Check your local requirements." },
-    { q: "What dining is included?", a: "Main dining room and buffet are included. Specialty venues have a surcharge." },
-  ],
-  teasers: [
-    { title: "Open Sea", src: "https://cdn.coverr.co/videos/coverr-slow-waves-7284/1080p.mp4" },
-    { title: "Golden Hour", src: "https://cdn.coverr.co/videos/coverr-sailing-ship-9243/1080p.mp4" },
-  ],
-  galleryVideos: [
-    "https://www.w3schools.com/html/mov_bbb.mp4",
-    "https://cdn.coverr.co/videos/coverr-slow-waves-7284/1080p.mp4",
-  ],
-};
-
 export default function CruiseDetail({ params }) {
-  // Use real API calls - use getById since seeders don't create slugs
+  const [relatedCruises, setRelatedCruises] = useState([]);
+  const [recommendedCruises, setRecommendedCruises] = useState([]);
+
+  // Fetch cruise by slug
   const {
     data: cruise,
     loading,
     error,
     refetch
-  } = useApi(() => cruiseApi.getById(params.slug), [params.slug]);
+  } = useApi(() => cruiseApi.getBySlug(params.slug), [params.slug]);
 
-  // Get route data from backend API
-  const {
-    data: routeData,
-    loading: routeLoading
-  } = useApi(() => cruiseApi.getRoute(params.slug), [params.slug]);
-
-  // Keep static data as fallback
-  const staticCruises = {
-        "mediterranean-majesty": {
-          id: 1,
-          name: "Mediterranean Majesty",
-          description: "Sail through ancient civilizations, pristine beaches, and vibrant cultures across the Mediterranean Sea.",
-          price: 1299,
-          originalPrice: 1699,
-          images: ["https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80"],
-          rating: 4.9,
-          reviews: 2847,
-          duration: "8 days",
-          departure: "Barcelona, Spain",
-          slug: "mediterranean-majesty",
-          highlights: ["Italian Riviera", "Greek Islands", "French Riviera"],
-          amenities: ["Michelin Dining", "Spa & Wellness", "Live Entertainment"],
-          overview: "Experience the rich history and stunning coastlines of the Mediterranean on this luxury cruise.",
-          inclusions: ["All meals", "Entertainment", "Port taxes"],
-          routeNames: ["Barcelona", "Nice", "Rome", "Santorini", "Barcelona"],
-          routeGeo: [
-            { name: "Barcelona", lat: 41.3851, lng: 2.1734 },
-            { name: "Nice", lat: 43.5528, lng: 7.0174 },
-            { name: "Rome", lat: 41.9028, lng: 12.4964 },
-            { name: "Santorini", lat: 36.3932, lng: 25.4615 },
-            { name: "Barcelona", lat: 41.3851, lng: 2.1734 }
-          ],
-          teasers: [
-            { title: "Harbor Mornings", src: "https://cdn.coverr.co/videos/coverr-sunset-over-the-harbor-6138/1080p.mp4" },
-            { title: "Coastal Run", src: "https://cdn.coverr.co/videos/coverr-coastline-5241/1080p.mp4" }
-          ],
-          galleryVideos: [
-            "https://cdn.coverr.co/videos/coverr-coastal-waves-2078/1080p.mp4",
-            "https://cdn.coverr.co/videos/coverr-sailing-ship-9243/1080p.mp4"
-          ],
-          cabins: [
-            { name: "Interior", size: "16–18 m²", perks: ["Queen/Twin", "Smart TV"] },
-            { name: "Oceanview", size: "18–20 m²", perks: ["Sea window", "Mini bar"] },
-            { name: "Balcony", size: "20–24 m²", perks: ["Private balcony", "Sofa"] },
-            { name: "Suite", size: "30–45 m²", perks: ["Concierge", "Lounge access"] }
-          ],
-          faq: [
-            { q: "Do I need a passport?", a: "Yes, for Mediterranean ports a passport is required." },
-            { q: "What dining is included?", a: "Main dining room and buffet are included. Specialty venues have a surcharge." }
-          ],
-          itinerary: [
-            { day: 1, port: "Barcelona, Spain", activities: "Embarkation" },
-            { day: 2, port: "Nice, France", activities: "City tour, French Riviera" },
-            { day: 3, port: "Rome, Italy", activities: "Colosseum, Vatican" },
-            { day: 4, port: "Santorini, Greece", activities: "Blue domes, sunset" },
-            { day: 5, port: "Mykonos, Greece", activities: "Beaches, nightlife" },
-            { day: 6, port: "At Sea", activities: "Spa, pools, shows" },
-            { day: 7, port: "Valencia, Spain", activities: "City center, paella" },
-            { day: 8, port: "Barcelona, Spain", activities: "Disembarkation" }
-          ]
-        },
-        "caribbean-paradise": {
-          id: 2,
-          name: "Caribbean Paradise",
-          description: "Experience crystal-clear waters, white sand beaches, and tropical luxury in the Caribbean.",
-          price: 999,
-          originalPrice: 1299,
-          images: ["https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=800&q=80"],
-          rating: 4.8,
-          reviews: 3241,
-          duration: "7 days",
-          departure: "Miami, Florida",
-          slug: "caribbean-paradise",
-          highlights: ["Pristine Beaches", "Snorkeling", "Island Hopping"],
-          amenities: ["Water Sports", "Tropical Spa", "Beach Bar"],
-          overview: "Discover the tropical paradise of the Caribbean with pristine beaches and crystal-clear waters.",
-          inclusions: ["All meals", "Water sports", "Entertainment"],
-          routeNames: ["Miami", "Nassau", "Cozumel", "Key West", "Miami"],
-          routeGeo: [
-            { name: "Miami", lat: 25.7617, lng: -80.1918 },
-            { name: "Nassau", lat: 25.047, lng: -77.3554 },
-            { name: "Cozumel", lat: 20.422, lng: -86.92 },
-            { name: "Key West", lat: 24.5551, lng: -81.78 },
-            { name: "Miami", lat: 25.7617, lng: -80.1918 }
-          ],
-          teasers: [
-            { title: "Sail Away", src: "https://cdn.coverr.co/videos/coverr-slow-waves-7284/1080p.mp4" },
-            { title: "Island Dock", src: "https://cdn.coverr.co/videos/coverr-sailing-ship-9243/1080p.mp4" },
-            { title: "Blue Hour", src: "https://cdn.coverr.co/videos/coverr-ocean-waves-1595/1080p.mp4" }
-          ],
-          galleryVideos: [
-            "https://cdn.coverr.co/videos/coverr-ocean-waves-1595/1080p.mp4",
-            "https://www.w3schools.com/html/mov_bbb.mp4",
-            "https://cdn.coverr.co/videos/coverr-sailing-ship-9243/1080p.mp4"
-          ],
-          cabins: [
-            { name: "Interior", size: "16–18 m²", perks: ["Queen/Twin", "Smart TV"] },
-            { name: "Oceanview", size: "18–20 m²", perks: ["Sea window", "Mini bar"] },
-            { name: "Balcony", size: "20–24 m²", perks: ["Private balcony", "Sofa"] },
-            { name: "Suite", size: "30–45 m²", perks: ["Concierge", "Lounge access"] }
-          ],
-          faq: [
-            { q: "Do I need a passport?", a: "International ports typically require a passport. Check your local requirements." },
-            { q: "What dining is included?", a: "Main dining room and buffet are included. Specialty venues have a surcharge." }
-          ],
-          itinerary: [
-            { day: 1, port: "Miami, Florida", activities: "Embarkation" },
-            { day: 2, port: "At Sea", activities: "Pool deck, shows" },
-            { day: 3, port: "Nassau, Bahamas", activities: "Swimming, shopping" },
-            { day: 4, port: "Cozumel, Mexico", activities: "Snorkeling, ruins" },
-            { day: 5, port: "Key West, Florida", activities: "Sunset, fishing" },
-            { day: 6, port: "At Sea", activities: "Spa, dining" },
-            { day: 7, port: "Miami, Florida", activities: "Disembarkation" }
-          ]
-        },
-        "alaskan-wilderness": {
-          id: 3,
-          name: "Alaskan Wilderness",
-          description: "Journey through breathtaking glaciers, wildlife, and the untouched beauty of Alaska.",
-          price: 1499,
-          originalPrice: 1899,
-          images: ["https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&q=80"],
-          rating: 4.9,
-          reviews: 1876,
-          duration: "10 days",
-          departure: "Seattle, Washington",
-          slug: "alaskan-wilderness",
-          highlights: ["Glacier Bay", "Wildlife Viewing", "Scenic Fjords"],
-          amenities: ["Expedition Deck", "Wildlife Naturalist", "Thermal Pools"],
-          overview: "Explore the last frontier with glaciers, wildlife, and breathtaking natural beauty.",
-          inclusions: ["All meals", "Wildlife guide", "Expedition gear"],
-          routeNames: ["Seattle", "Ketchikan", "Juneau", "Skagway", "Seattle"],
-          routeGeo: [
-            { name: "Seattle", lat: 47.6062, lng: -122.3321 },
-            { name: "Ketchikan", lat: 55.3422, lng: -131.6461 },
-            { name: "Juneau", lat: 58.3019, lng: -134.4197 },
-            { name: "Skagway", lat: 59.4583, lng: -135.3139 },
-            { name: "Seattle", lat: 47.6062, lng: -122.3321 }
-          ],
-          teasers: [
-            { title: "Glacier Views", src: "https://cdn.coverr.co/videos/coverr-icebergs-ice-3961/1080p.mp4" },
-            { title: "Wildlife Watch", src: "https://cdn.coverr.co/videos/coverr-mountain-lake-3585/1080p.mp4" }
-          ],
-          galleryVideos: [
-            "https://cdn.coverr.co/videos/coverr-icebergs-ice-3961/1080p.mp4",
-            "https://cdn.coverr.co/videos/coverr-waterfall-valley-2076/1080p.mp4"
-          ],
-          cabins: [
-            { name: "Interior", size: "16–18 m²", perks: ["Queen/Twin", "Smart TV"] },
-            { name: "Oceanview", size: "18–20 m²", perks: ["Sea window", "Mini bar"] },
-            { name: "Balcony", size: "20–24 m²", perks: ["Private balcony", "Sofa"] },
-            { name: "Suite", size: "30–45 m²", perks: ["Concierge", "Lounge access"] }
-          ],
-          faq: [
-            { q: "What should I pack for Alaska?", a: "Warm layers, waterproof jacket, and comfortable walking shoes are essential." },
-            { q: "Can I see the Northern Lights?", a: "During summer cruising season, the Northern Lights are not visible due to extended daylight hours." }
-          ],
-          itinerary: [
-            { day: 1, port: "Seattle, Washington", activities: "Embarkation" },
-            { day: 2, port: "At Sea", activities: "Scenic cruising" },
-            { day: 3, port: "Ketchikan, Alaska", activities: "Totem poles, fishing" },
-            { day: 4, port: "Juneau, Alaska", activities: "Glaciers, whales" },
-            { day: 5, port: "Skagway, Alaska", activities: "Gold rush history" },
-            { day: 6, port: "Glacier Bay", activities: "Glacier viewing" },
-            { day: 7, port: "Haines, Alaska", activities: "Eagles, wilderness" },
-            { day: 8, port: "At Sea", activities: "Scenic cruising" },
-            { day: 9, port: "Victoria, BC", activities: "Gardens, tea" },
-            { day: 10, port: "Seattle, Washington", activities: "Disembarkation" }
-          ]
+  // Fetch related and recommended cruises
+  useEffect(() => {
+    const fetchRelatedCruises = async () => {
+      try {
+        // If cruise has a category, fetch cruises from that category
+        if (cruise?.data?.category) {
+          const categoryData = await getCruisesByCategory(cruise.data.category.slug);
+          // Filter out current cruise and limit to 4
+          const filtered = (categoryData.cruises || [])
+            .filter(c => c.id !== cruise.data.id)
+            .slice(0, 4);
+          setRelatedCruises(filtered);
+        } else {
+          // Fallback: fetch all cruises
+          const allCruises = await cruiseApi.getAll({ limit: 5 });
+          const filtered = (allCruises.data || [])
+            .filter(c => c.id !== cruise?.data?.id)
+            .slice(0, 4);
+          setRelatedCruises(filtered);
         }
-      };
+      } catch (err) {
+        console.error('Error fetching related cruises:', err);
+      }
+    };
+
+    const fetchRecommendedCruises = async () => {
+      try {
+        // Fetch popular/top-rated cruises
+        const response = await cruiseApi.getAll({ limit: 5 });
+        // Filter out current cruise and limit to 3
+        const filtered = (response.data || [])
+          .filter(c => c.id !== cruise?.data?.id)
+          .slice(0, 3);
+        setRecommendedCruises(filtered);
+      } catch (err) {
+        console.error('Error fetching recommended cruises:', err);
+      }
+    };
+
+    if (cruise?.data) {
+      fetchRelatedCruises();
+      fetchRecommendedCruises();
+    }
+  }, [cruise]);
 
   if (loading) {
     return (
@@ -318,7 +81,7 @@ export default function CruiseDetail({ params }) {
     );
   }
 
-  if (error || !cruise) {
+  if (error || !cruise?.data) {
     return (
       <main className="bg-gray-50 min-h-screen">
         <div className="flex flex-col items-center justify-center py-20">
@@ -344,32 +107,41 @@ export default function CruiseDetail({ params }) {
     );
   }
 
-  // Get cruise data from API or fallback to static data
-  const cruiseData = cruise.data || staticCruises[params.slug] || {};
+  // Get cruise data from API
+  const cruiseData = cruise.data;
   const cruiseRating = cruiseData.rating || 0;
   const cruiseDuration = cruiseData.duration || 7;
   const cruisePrice = cruiseData.price || 0;
-  const cruiseImage = cruiseData.image || cruiseData.images?.[0] || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&q=60&auto=format&fit=crop";
+  const cruiseImage = cruiseData.posterImage || cruiseData.image || cruiseData.images?.[0] || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&q=60&auto=format&fit=crop";
 
-  // Use API route data if available, otherwise fallback to static data
-  const apiRouteData = routeData?.data || {};
-  const fallbackRouteGeo = [
+  // Route data
+  const routeGeo = cruiseData.routeGeo || [
     { name: "Embark", lat: 25.7617, lng: -80.1918 },
     { name: "At Sea", lat: 24.0, lng: -78.0 },
     { name: "Port", lat: 23.1, lng: -81.2 },
     { name: "Return", lat: 25.7617, lng: -80.1918 },
   ];
-  const fallbackRouteNames = ["Embark", "At Sea", "Port", "Return"];
+  const routeNames = cruiseData.routeNames || ["Embark", "At Sea", "Port", "Return"];
 
-  const defaultRouteGeo = apiRouteData.routeGeo || fallbackRouteGeo;
-  const defaultRouteNames = apiRouteData.routeNames || fallbackRouteNames;
-  const defaultHighlights = apiRouteData.highlights || cruiseData.highlights || ["Luxury accommodations", "World-class dining", "Entertainment"];
-  const defaultAmenities = cruiseData.amenities || ["Pool", "Spa", "Theater", "Dining"];
-  const defaultInclusions = cruiseData.inclusions || cruiseData.includes || ["All meals", "Entertainment", "Port taxes"];
-  const defaultCabins = cruiseData.cabins || DEFAULTS.cabins;
-  const defaultFaq = cruiseData.faq || DEFAULTS.faq;
-  const defaultTeasers = cruiseData.teasers || DEFAULTS.teasers;
-  const defaultGalleryVideos = cruiseData.galleryVideos || DEFAULTS.galleryVideos;
+  // Other data with fallbacks
+  const highlights = cruiseData.highlights || ["Luxury accommodations", "World-class dining", "Entertainment"];
+  const amenities = cruiseData.amenities || ["Pool", "Spa", "Theater", "Dining"];
+  const inclusions = cruiseData.inclusions || ["All meals", "Entertainment", "Port taxes"];
+  const cabins = cruiseData.cabins || [
+    { name: "Interior", size: "16–18 m²", perks: ["Queen/Twin", "Smart TV"] },
+    { name: "Oceanview", size: "18–20 m²", perks: ["Sea window", "Mini bar"] },
+    { name: "Balcony", size: "20–24 m²", perks: ["Private balcony", "Sofa"] },
+    { name: "Suite", size: "30–45 m²", perks: ["Concierge", "Lounge access"] },
+  ];
+  const faq = cruiseData.faq || [
+    { q: "Do I need a passport?", a: "International ports typically require a passport. Check your local requirements." },
+    { q: "What dining is included?", a: "Main dining room and buffet are included. Specialty venues have a surcharge." },
+  ];
+
+  // Video data - fully dynamic from backend
+  const videos = cruiseData.videos || {};
+  const teasers = videos.teasers || [];
+  const galleryVideos = videos.gallery || [];
 
   return (
     <main className="bg-gray-50">
@@ -378,7 +150,7 @@ export default function CruiseDetail({ params }) {
         <div className="absolute inset-0">
           <img
             src={cruiseImage}
-            alt={cruiseData.name || cruiseData.title}
+            alt={cruiseData.name}
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black/70" />
@@ -391,10 +163,10 @@ export default function CruiseDetail({ params }) {
               </span>
             )}
             <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight drop-shadow mb-4">
-              {cruiseData.name || cruiseData.title}
+              {cruiseData.name}
             </h1>
             <p className="text-lg text-white/90 mb-6 max-w-2xl">
-              {cruiseData.description || cruiseData.summary || "Experience an unforgettable cruise adventure."}
+              {cruiseData.summary || cruiseData.description || "Experience an unforgettable cruise adventure."}
             </p>
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-white/90">
@@ -514,7 +286,7 @@ export default function CruiseDetail({ params }) {
           </div>
 
           <div className="mt-8">
-            <AnimatedRouteMap points={defaultRouteGeo} height="500px" />
+            <AnimatedRouteMap points={routeGeo} height="500px" />
           </div>
 
           {/* Enhanced route timeline */}
@@ -526,8 +298,8 @@ export default function CruiseDetail({ params }) {
                    style={{marginLeft: '2rem', marginRight: '2rem'}} />
 
               <ol className="relative grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-                {defaultRouteNames.map((name, i) => (
-                  <li key={name} className="group relative">
+                {routeNames.map((name, i) => (
+                  <li key={`${name}-${i}`} className="group relative">
                     <div className="relative bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200">
                       {/* Step indicator */}
                       <div className="absolute -top-3 left-6 w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md">
@@ -545,12 +317,12 @@ export default function CruiseDetail({ params }) {
                       {/* Port details */}
                       <div className="text-center">
                         <div className="text-xs font-semibold text-blue-600 mb-1 uppercase tracking-wider">
-                          {i === 0 ? 'Departure' : i === defaultRouteNames.length - 1 ? 'Return' : 'Stop'}
+                          {i === 0 ? 'Departure' : i === routeNames.length - 1 ? 'Return' : 'Stop'}
                         </div>
                         <div className="text-gray-900 font-semibold text-sm">{name}</div>
-                        {defaultRouteGeo[i] && (
+                        {routeGeo[i] && (
                           <div className="text-xs text-gray-500 mt-1">
-                            {defaultRouteGeo[i].lat.toFixed(2)}°, {defaultRouteGeo[i].lng.toFixed(2)}°
+                            {routeGeo[i].lat.toFixed(2)}°, {routeGeo[i].lng.toFixed(2)}°
                           </div>
                         )}
                       </div>
@@ -567,7 +339,7 @@ export default function CruiseDetail({ params }) {
           {/* Route statistics */}
           <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-white/80 backdrop-blur rounded-xl border border-gray-100">
-              <div className="text-2xl font-bold text-blue-600">{defaultRouteNames.length}</div>
+              <div className="text-2xl font-bold text-blue-600">{routeNames.length}</div>
               <div className="text-sm text-gray-600">Total Stops</div>
             </div>
             <div className="text-center p-4 bg-white/80 backdrop-blur rounded-xl border border-gray-100">
@@ -576,11 +348,11 @@ export default function CruiseDetail({ params }) {
             </div>
             <div className="text-center p-4 bg-white/80 backdrop-blur rounded-xl border border-gray-100">
               <div className="text-2xl font-bold text-indigo-600">
-                {defaultRouteGeo.length > 1 ?
+                {routeGeo.length > 1 ?
                   Math.round(
-                    defaultRouteGeo.reduce((total, point, i) => {
+                    routeGeo.reduce((total, point, i) => {
                       if (i === 0) return 0;
-                      const prev = defaultRouteGeo[i - 1];
+                      const prev = routeGeo[i - 1];
                       const distance = Math.sqrt(
                         Math.pow(point.lat - prev.lat, 2) + Math.pow(point.lng - prev.lng, 2)
                       );
@@ -603,7 +375,7 @@ export default function CruiseDetail({ params }) {
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
         <h2 className="text-2xl font-bold text-gray-900">Highlights</h2>
         <div className="mt-4 flex flex-wrap gap-3">
-          {defaultHighlights.map((h, i) => (
+          {highlights.map((h, i) => (
             <span
               key={`${h}-${i}`}
               className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow ring-1 ring-black/5"
@@ -614,32 +386,49 @@ export default function CruiseDetail({ params }) {
         </div>
       </section>
 
-      {/* ——— TEASER REELS (all video) ——— */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-        <h2 className="text-2xl font-bold text-gray-900">Ship teaser reels</h2>
-        <p className="mt-1 text-gray-600">Short loops to feel the vibe onboard.</p>
-        <div className="mt-4 no-scrollbar flex gap-4 overflow-x-auto">
-          {defaultTeasers.map((t, i) => (
-            <div key={`${t.title}-${i}`} className="shrink-0 w-72 overflow-hidden rounded-2xl bg-white shadow ring-1 ring-black/5">
-              <video
-                className="h-44 w-full object-cover"
-                muted playsInline loop autoPlay preload="metadata"
-              >
-                <source src={t.src} type="video/mp4" />
-              </video>
-              <div className="p-3">
-                <p className="text-sm font-medium text-gray-800">{t.title}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* ——— TEASER REELS (all video) - Only show if videos exist ——— */}
+      {teasers && teasers.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+          <h2 className="text-2xl font-bold text-gray-900">Ship teaser reels</h2>
+          <p className="mt-1 text-gray-600">Short loops to feel the vibe onboard.</p>
+          <div className="mt-4 no-scrollbar flex gap-4 overflow-x-auto">
+            {teasers.map((t, i) => {
+              const isYouTube = t.src && (t.src.includes('youtube.com/embed') || t.src.includes('youtu.be'));
+              return (
+                <div key={`${t.title}-${i}`} className="shrink-0 w-72 overflow-hidden rounded-2xl bg-white shadow ring-1 ring-black/5">
+                  {isYouTube ? (
+                    <div className="relative w-full h-44">
+                      <iframe
+                        src={t.src}
+                        title={t.title}
+                        className="absolute inset-0 w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : (
+                    <video
+                      className="h-44 w-full object-cover"
+                      muted playsInline loop autoPlay preload="metadata"
+                    >
+                      <source src={t.src} type="video/mp4" />
+                    </video>
+                  )}
+                  <div className="p-3">
+                    <p className="text-sm font-medium text-gray-800">{t.title}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ——— CABINS ——— */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <h2 className="text-2xl font-bold text-gray-900">Cabins & Suites</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {defaultCabins.map((cabin, i) => (
+          {cabins.map((cabin, i) => (
             <div key={`${cabin.name}-${i}`} className="rounded-2xl bg-white p-4 shadow ring-1 ring-black/5">
               <p className="text-sm uppercase tracking-wide text-gray-500">{cabin.name}</p>
               <p className="mt-1 font-semibold text-gray-900">{cabin.size}</p>
@@ -653,28 +442,43 @@ export default function CruiseDetail({ params }) {
         </div>
       </section>
 
-      {/* ——— VIDEO GALLERY GRID ——— */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-        <h2 className="text-2xl font-bold text-gray-900">Gallery</h2>
-        <p className="mt-1 text-gray-600">A moving look at decks, shores, and sunsets.</p>
-        <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3">
-          {defaultGalleryVideos.map((src, i) => (
-            <figure key={`${src}-${i}`} className="relative aspect-[4/3] overflow-hidden rounded-xl ring-1 ring-black/5">
-              <video className="h-full w-full object-cover" muted loop playsInline autoPlay preload="metadata">
-                <source src={src} type="video/mp4" />
-              </video>
-            </figure>
-          ))}
-        </div>
-      </section>
+      {/* ——— VIDEO GALLERY GRID - Only show if videos exist ——— */}
+      {galleryVideos && galleryVideos.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+          <h2 className="text-2xl font-bold text-gray-900">Video Gallery</h2>
+          <p className="mt-1 text-gray-600">A moving look at decks, shores, and sunsets.</p>
+          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3">
+            {galleryVideos.map((src, i) => {
+              const isYouTube = src && (src.includes('youtube.com/embed') || src.includes('youtu.be'));
+              return (
+                <figure key={`${src}-${i}`} className="relative aspect-[4/3] overflow-hidden rounded-xl ring-1 ring-black/5">
+                  {isYouTube ? (
+                    <iframe
+                      src={src}
+                      title={`Gallery video ${i + 1}`}
+                      className="absolute inset-0 w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video className="h-full w-full object-cover" muted loop playsInline autoPlay preload="metadata">
+                      <source src={src} type="video/mp4" />
+                    </video>
+                  )}
+                </figure>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ——— INCLUDES + FAQ ——— */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
         <div className="grid gap-8 lg:grid-cols-2">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">What’s included</h2>
+            <h2 className="text-2xl font-bold text-gray-900">What's included</h2>
             <ul className="mt-4 space-y-2">
-              {defaultInclusions.map((inc, i) => (
+              {inclusions.map((inc, i) => (
                 <li key={`${inc}-${i}`} className="rounded-xl bg-white p-4 shadow ring-1 ring-black/5">
                   ✅ {inc}
                 </li>
@@ -684,7 +488,7 @@ export default function CruiseDetail({ params }) {
           <div>
             <h2 className="text-2xl font-bold text-gray-900">FAQ</h2>
             <div className="mt-4 divide-y divide-gray-200 rounded-2xl bg-white ring-1 ring-black/5">
-              {defaultFaq.map((f, i) => (
+              {faq.map((f, i) => (
                 <details key={`${f.q}-${i}`} className="group p-4">
                   <summary className="cursor-pointer list-none select-none font-semibold text-gray-900">
                     <span className="mr-2 text-primary">?</span>
@@ -698,12 +502,201 @@ export default function CruiseDetail({ params }) {
         </div>
       </section>
 
+      {/* ——— RELATED CRUISES ——— */}
+      {relatedCruises.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 bg-gradient-to-b from-gray-50 to-white">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900">
+                  {cruise?.data?.category ? `More ${cruise.data.category.name} Cruises` : 'Related Cruises'}
+                </h2>
+                <p className="text-gray-600 mt-1">Explore similar cruise experiences</p>
+              </div>
+            </div>
+            {cruise?.data?.category && (
+              <a
+                href={`/cruises?category=${cruise.data.category.slug}`}
+                className="hidden md:flex items-center gap-2 px-6 py-3 bg-white border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold shadow-sm hover:shadow-md"
+              >
+                View All
+                <ChevronRight className="w-5 h-5" />
+              </a>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {relatedCruises.map((cruise) => (
+              <a
+                key={cruise.id}
+                href={`/cruises/${cruise.slug || cruise.id}`}
+                className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+              >
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={cruise.images?.[0] || "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&h=600&fit=crop&crop=center"}
+                    alt={cruise.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      if (!e.target.src.includes('placeholder')) {
+                        e.target.src = "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&h=600&fit=crop&crop=center";
+                      }
+                    }}
+                  />
+                  <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg">
+                    <p className="text-sm font-bold text-primary">
+                      ${cruise.price || '899'}
+                    </p>
+                  </div>
+                  {cruise.rating && (
+                    <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <span className="text-white text-sm font-semibold">{cruise.rating}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-primary transition-colors line-clamp-1">
+                    {cruise.name}
+                  </h3>
+
+                  <div className="space-y-1.5 mb-3">
+                    {cruise.duration && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Calendar className="w-4 h-4 text-primary" />
+                        <span>{cruise.duration} days</span>
+                      </div>
+                    )}
+                    {cruise.departurePort && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        <span className="truncate">{cruise.departurePort}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-gray-100">
+                    <span className="text-primary font-semibold text-sm group-hover:gap-2 flex items-center gap-1 transition-all">
+                      View Details
+                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ——— RECOMMENDED CRUISES ——— */}
+      {recommendedCruises.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 bg-white">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900">
+                  Recommended For You
+                </h2>
+                <p className="text-gray-600 mt-1">Handpicked popular cruise experiences</p>
+              </div>
+            </div>
+            <a
+              href="/cruises"
+              className="hidden md:flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:from-purple-600 hover:to-pink-700 transition-all font-semibold shadow-md hover:shadow-lg"
+            >
+              Browse All
+              <ChevronRight className="w-5 h-5" />
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {recommendedCruises.map((cruise) => (
+              <a
+                key={cruise.id}
+                href={`/cruises/${cruise.slug || cruise.id}`}
+                className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100"
+              >
+                <div className="relative h-56 overflow-hidden">
+                  <img
+                    src={cruise.images?.[0] || "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&h=600&fit=crop&crop=center"}
+                    alt={cruise.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      if (!e.target.src.includes('placeholder')) {
+                        e.target.src = "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&h=600&fit=crop&crop=center";
+                      }
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
+                    <p className="text-sm font-bold text-purple-600">
+                      ${cruise.price || '899'}
+                    </p>
+                  </div>
+                  {cruise.rating && (
+                    <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <span className="text-gray-900 text-sm font-semibold">{cruise.rating}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-5">
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors line-clamp-1">
+                    {cruise.name}
+                  </h3>
+
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                    {cruise.description || 'Embark on an unforgettable journey across the seas'}
+                  </p>
+
+                  <div className="space-y-2 mb-4">
+                    {cruise.duration && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Calendar className="w-4 h-4 text-purple-600" />
+                        <span>{cruise.duration} days cruise</span>
+                      </div>
+                    )}
+                    {cruise.departurePort && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="w-4 h-4 text-purple-600" />
+                        <span className="truncate">{cruise.departurePort}</span>
+                      </div>
+                    )}
+                    {cruise.capacity && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Users className="w-4 h-4 text-purple-600" />
+                        <span>Up to {cruise.capacity} guests</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-200">
+                    <span className="text-purple-600 font-semibold text-sm group-hover:gap-2 flex items-center gap-1 transition-all">
+                      Explore This Cruise
+                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ——— ENHANCED CTA + breadcrumbs ——— */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16">
         <div className="rounded-2xl bg-gradient-to-r from-primary to-blue-600 px-8 py-10 text-white shadow-2xl">
           <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
             <div className="max-w-xl">
-              <h3 className="text-3xl font-bold leading-tight">Ready to sail on {cruiseData.name || cruiseData.title}?</h3>
+              <h3 className="text-3xl font-bold leading-tight">Ready to sail on {cruiseData.name}?</h3>
               <p className="mt-2 text-white/90 text-lg">From ${cruisePrice.toLocaleString()} per person</p>
               <div className="mt-4 flex items-center gap-6 text-sm text-white/80">
                 <span className="flex items-center gap-1">
@@ -735,7 +728,7 @@ export default function CruiseDetail({ params }) {
           <span className="mx-2">/</span>
           <Link href="/cruises" className="hover:text-primary hover:underline transition">Cruises</Link>
           <span className="mx-2">/</span>
-          <span className="text-gray-900 font-medium">{cruiseData.name || cruiseData.title}</span>
+          <span className="text-gray-900 font-medium">{cruiseData.name}</span>
         </nav>
       </section>
     </main>

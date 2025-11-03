@@ -21,6 +21,7 @@ model Tenant {
 
   // Relations
   users       User[]
+  cruiseCategories CruiseCategory[]
   cruises     Cruise[]
   hotels      Hotel[]
   packages    Package[]
@@ -56,25 +57,67 @@ model User {
   blogComments BlogComment[]
 }
 
+model CruiseCategory {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Australian Cruises", "Mediterranean Cruises"
+  slug        String   @unique
+  description String?
+  image       String?
+  icon        String?  // Icon name or emoji
+  displayOrder Int     @default(0)
+  isActive    Boolean  @default(true)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  cruises     Cruise[]
+
+  @@index([tenantId])
+  @@index([slug])
+}
+
 model Cruise {
   id          String   @id @default(cuid())
   name        String
+  slug        String?  @unique // URL-friendly slug for the cruise
   description String
+  summary     String?  // Short description/tagline
   image       String
   images      String[]
+  posterImage String?  // Hero/poster image for detail page
   rating      Float    @default(0)
   price       Float
   duration    Int      // in days
   capacity    Int
   available   Boolean  @default(true)
-  itinerary   Json?
-  amenities   String[]
-  departure   String
+  isActive    Boolean  @default(true)  // For enabling/disabling cruises
+  type        String?  // Cruise type (e.g., "Luxury", "Family", "Adventure")
+
+  // Location & Route
+  departure   String   // Departure city/port
+  departurePort String? // Specific port name
   destination String
   routeGeo    Json?    // Route coordinates [{name, lat, lng}]
   routeNames  String[] // Route stop names
+
+  // Details
   highlights  String[] // Cruise highlights
-  videos      Json?    // Video gallery and teasers
+  amenities   String[]
+  inclusions  String[] // What's included in the price
+  itinerary   Json?    // Day-by-day itinerary [{day, port, activities}]
+  cabins      Json?    // Cabin types and details [{name, size, perks}]
+  faq         Json?    // Frequently asked questions [{q, a}]
+
+  // Media
+  videos      Json?    // Video gallery and teasers {teasers: [{title, src}], gallery: [src]}
+  badge       String?  // Badge/label (e.g., "Popular", "New")
+
+  // Category relation
+  categoryId  String?
+  category    CruiseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
@@ -83,6 +126,32 @@ model Cruise {
   // Relations
   bookings    Booking[]
   reviews     Review[]
+  departures  CruiseDeparture[]  // Multiple sailing dates for this cruise
+
+  @@index([tenantId])
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([slug])
+}
+
+model CruiseDeparture {
+  id              String   @id @default(cuid())
+  cruiseId        String
+  cruise          Cruise   @relation(fields: [cruiseId], references: [id], onDelete: Cascade)
+
+  departureDate   DateTime
+  returnDate      DateTime
+  availableSeats  Int
+  priceModifier   Float    @default(1.0)  // Multiplier for seasonal pricing (1.0 = base price)
+  status          DepartureStatus @default(AVAILABLE)
+  notes           String?  // Special notes for this departure (e.g., "Holiday sailing")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([cruiseId])
+  @@index([departureDate])
+  @@index([status])
 }
 
 model Hotel {
@@ -327,6 +396,12 @@ model MediaFile {
   height       Int?          // For images
   duration     Float?        // For videos in seconds
   thumbnailUrl String?       // For video thumbnails
+
+  // YouTube video support
+  isYouTube    Boolean       @default(false) // True if this is a YouTube video
+  youtubeVideoId String?     // YouTube video ID (e.g., "dQw4w9WgXcQ")
+  youtubeUrl   String?       // Original YouTube URL
+
   uploadedBy   String?
   uploader     User?         @relation(fields: [uploadedBy], references: [id])
   tenantId     String
@@ -337,6 +412,7 @@ model MediaFile {
   @@index([category])
   @@index([tenantId])
   @@index([uploadedBy])
+  @@index([isYouTube])
 }
 
 model Blog {
@@ -474,4 +550,11 @@ enum MediaCategory {
   AUDIO
   ARCHIVE
   OTHER
+}
+
+enum DepartureStatus {
+  AVAILABLE
+  FILLING_FAST
+  SOLD_OUT
+  CANCELLED
 }

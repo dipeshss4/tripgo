@@ -42,6 +42,7 @@ const MediaLibraryPage: React.FC = () => {
 
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [isYouTubeModalOpen, setIsYouTubeModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<MediaFile | null>(null)
@@ -59,6 +60,15 @@ const MediaLibraryPage: React.FC = () => {
     folder: '',
     tags: [] as string[],
     description: ''
+  })
+
+  // YouTube import state
+  const [youtubeFormData, setYoutubeFormData] = useState({
+    youtubeUrl: '',
+    title: '',
+    description: '',
+    folder: '',
+    tags: [] as string[]
   })
 
   const { data: mediaData, isLoading } = useQuery({
@@ -119,6 +129,20 @@ const MediaLibraryPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['media-stats'] })
       setSelectedFiles([])
       toast.success('Files deleted successfully')
+    }
+  })
+
+  const youtubeImportMutation = useMutation({
+    mutationFn: (data: typeof youtubeFormData) => mediaService.importYouTubeVideo(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['media'] })
+      queryClient.invalidateQueries({ queryKey: ['media-stats'] })
+      setIsYouTubeModalOpen(false)
+      setYoutubeFormData({ youtubeUrl: '', title: '', description: '', folder: '', tags: [] })
+      toast.success('YouTube video imported successfully')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to import YouTube video')
     }
   })
 
@@ -271,6 +295,10 @@ const MediaLibraryPage: React.FC = () => {
               Delete Selected ({selectedFiles.length})
             </Button>
           )}
+          <Button variant="secondary" onClick={() => setIsYouTubeModalOpen(true)}>
+            <VideoCameraIcon className="h-4 w-4 mr-2" />
+            Import from YouTube
+          </Button>
           <Button onClick={handleFileUpload}>
             <PlusIcon className="h-4 w-4 mr-2" />
             Upload Files
@@ -404,13 +432,20 @@ const MediaLibraryPage: React.FC = () => {
                   </div>
 
                   {/* File Preview */}
-                  <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2">
-                    {mediaService.isImage(file) ? (
-                      <img
-                        src={mediaService.getThumbnailUrl(file)}
-                        alt={file.alt || file.originalName}
-                        className="w-full h-full object-cover"
-                      />
+                  <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2 relative">
+                    {mediaService.isImage(file) || mediaService.isYouTubeVideo(file) ? (
+                      <>
+                        <img
+                          src={mediaService.getThumbnailUrl(file)}
+                          alt={file.alt || file.originalName}
+                          className="w-full h-full object-cover"
+                        />
+                        {mediaService.isYouTubeVideo(file) && (
+                          <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded font-medium">
+                            YouTube
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <div className={`p-3 rounded-lg ${getCategoryColor(file.category)}`}>
@@ -425,9 +460,17 @@ const MediaLibraryPage: React.FC = () => {
                     <p className="text-xs font-medium text-gray-900 truncate" title={file.originalName}>
                       {file.originalName}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {mediaService.formatFileSize(file.size)}
-                    </p>
+                    <div className="flex items-center gap-1">
+                      {mediaService.isYouTubeVideo(file) ? (
+                        <span className="text-xs text-red-600 font-medium">
+                          YouTube
+                        </span>
+                      ) : (
+                        <p className="text-xs text-gray-500">
+                          {mediaService.formatFileSize(file.size)}
+                        </p>
+                      )}
+                    </div>
                     {file.folder && (
                       <p className="text-xs text-gray-400 truncate">
                         📁 {file.folder}
@@ -551,6 +594,67 @@ const MediaLibraryPage: React.FC = () => {
         </div>
       </Modal>
 
+      {/* YouTube Import Modal */}
+      <Modal
+        isOpen={isYouTubeModalOpen}
+        onClose={() => setIsYouTubeModalOpen(false)}
+        title="Import from YouTube"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Tip:</strong> Paste any YouTube video URL (e.g., youtube.com/watch?v=..., youtu.be/...)
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <Input
+              label="YouTube URL"
+              value={youtubeFormData.youtubeUrl}
+              onChange={(e) => setYoutubeFormData(prev => ({ ...prev, youtubeUrl: e.target.value }))}
+              placeholder="https://www.youtube.com/watch?v=..."
+              required
+            />
+            <Input
+              label="Title (optional)"
+              value={youtubeFormData.title}
+              onChange={(e) => setYoutubeFormData(prev => ({ ...prev, title: e.target.value }))}
+              placeholder="Custom title for the video"
+            />
+            <Input
+              label="Description (optional)"
+              value={youtubeFormData.description}
+              onChange={(e) => setYoutubeFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Enter description"
+            />
+            <Select
+              label="Folder (optional)"
+              value={youtubeFormData.folder}
+              onChange={(e) => setYoutubeFormData(prev => ({ ...prev, folder: e.target.value }))}
+              options={folderOptions}
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <Button
+              variant="secondary"
+              onClick={() => setIsYouTubeModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => youtubeImportMutation.mutate(youtubeFormData)}
+              loading={youtubeImportMutation.isPending}
+              disabled={!youtubeFormData.youtubeUrl.trim()}
+            >
+              <VideoCameraIcon className="h-4 w-4 mr-2" />
+              Import Video
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Edit Modal */}
       <Modal
         isOpen={isEditModalOpen}
@@ -579,7 +683,11 @@ const MediaLibraryPage: React.FC = () => {
               <div className="flex-1">
                 <h3 className="font-medium text-gray-900">{selectedFile.originalName}</h3>
                 <p className="text-sm text-gray-500">
-                  {selectedFile.category} • {mediaService.formatFileSize(selectedFile.size)}
+                  {selectedFile.category} • {mediaService.isYouTubeVideo(selectedFile) ? (
+                    <span className="text-red-600 font-medium">YouTube Video</span>
+                  ) : (
+                    mediaService.formatFileSize(selectedFile.size)
+                  )}
                 </p>
               </div>
             </div>
@@ -646,6 +754,16 @@ const MediaLibraryPage: React.FC = () => {
                   alt={selectedFile.alt || selectedFile.originalName}
                   className="w-full max-h-96 object-contain"
                 />
+              ) : mediaService.isYouTubeVideo(selectedFile) ? (
+                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                  <iframe
+                    src={selectedFile.url}
+                    title={selectedFile.title || selectedFile.originalName}
+                    className="absolute top-0 left-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
               ) : mediaService.isVideo(selectedFile) ? (
                 <video
                   src={mediaService.getFileUrl(selectedFile)}
@@ -669,7 +787,13 @@ const MediaLibraryPage: React.FC = () => {
               </div>
               <div>
                 <label className="label">Size</label>
-                <p className="text-gray-900">{mediaService.formatFileSize(selectedFile.size)}</p>
+                <p className="text-gray-900">
+                  {mediaService.isYouTubeVideo(selectedFile) ? (
+                    <span className="text-red-600 font-medium">YouTube Video (External)</span>
+                  ) : (
+                    mediaService.formatFileSize(selectedFile.size)
+                  )}
+                </p>
               </div>
               <div>
                 <label className="label">Type</label>
