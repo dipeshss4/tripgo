@@ -26,6 +26,11 @@ import { enhancedAuth } from './middleware/enhancedAuth';
 import authRoutes from './routes/auth';
 import adminAuthRoutes from './routes/adminAuth';
 import cruiseRoutes from './routes/cruises';
+import cruiseCategoryRoutes from './routes/cruiseCategories';
+import cruiseDepartureRoutes from './routes/cruiseDepartures';
+import shipRoutes from './routes/ships';
+import shipCategoryRoutes from './routes/shipCategories';
+import shipDepartureRoutes from './routes/shipDepartures';
 import hotelRoutes from './routes/hotels';
 import packageRoutes from './routes/packages';
 import bookingRoutes from './routes/bookings';
@@ -38,6 +43,9 @@ import settingsRoutes from './routes/settings';
 import mediaRoutes from './routes/media';
 import dashboardRoutes from './routes/dashboard';
 import tenantRoutes from './routes/tenants';
+import verificationRoutes from './routes/verification';
+import footerRoutes from './routes/footer';
+import heroRoutes from './routes/hero';
 
 dotenv.config();
 
@@ -98,6 +106,7 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request tracking and logging
+
 app.use(requestId);
 app.use(requestLogger);
 app.use(performanceMonitor(2000)); // Alert on requests > 2 seconds
@@ -152,6 +161,15 @@ v1.use('/cruises',
   cacheMiddleware({ ttl: 300 }),
   cruiseRoutes
 );
+v1.use('/cruise-categories', cruiseCategoryRoutes);
+v1.use('/cruise-departures', cruiseDepartureRoutes);
+v1.use('/ships',
+  queryEnhancer(['name', 'price', 'duration', 'createdAt'], ['available', 'destination']),
+  cacheMiddleware({ ttl: 300 }),
+  shipRoutes
+);
+v1.use('/ship-categories', shipCategoryRoutes);
+v1.use('/ship-departures', shipDepartureRoutes);
 v1.use('/hotels',
   queryEnhancer(['name', 'price', 'rating', 'createdAt'], ['available', 'location']),
   cacheMiddleware({ ttl: 300 }),
@@ -179,6 +197,69 @@ v2.use('/cruises',
     varyBy: ['accept-language']
   }),
   cruiseRoutes
+);
+
+v2.use('/cruise-categories',
+  queryEnhancer(
+    ['name', 'displayOrder', 'createdAt', 'updatedAt'],
+    ['isActive']
+  ),
+  cacheMiddleware({
+    ttl: 600,
+    keyGenerator: (req) => `cruise-categories:${JSON.stringify(req.query)}`,
+    varyBy: ['accept-language']
+  }),
+  cruiseCategoryRoutes
+);
+
+v2.use('/cruise-departures',
+  queryEnhancer(
+    ['departureDate', 'returnDate', 'availableSeats', 'createdAt'],
+    ['status', 'cruiseId']
+  ),
+  cacheMiddleware({
+    ttl: 180,
+    keyGenerator: (req) => `cruise-departures:${JSON.stringify(req.query)}`
+  }),
+  cruiseDepartureRoutes
+);
+
+v2.use('/ships',
+  queryEnhancer(
+    ['name', 'price', 'duration', 'rating', 'createdAt', 'updatedAt'],
+    ['available', 'destination', 'departure', 'capacity', 'type']
+  ),
+  cacheMiddleware({
+    ttl: 300,
+    keyGenerator: (req) => `ships:${JSON.stringify(req.query)}`,
+    varyBy: ['accept-language']
+  }),
+  shipRoutes
+);
+
+v2.use('/ship-categories',
+  queryEnhancer(
+    ['name', 'displayOrder', 'createdAt', 'updatedAt'],
+    ['isActive']
+  ),
+  cacheMiddleware({
+    ttl: 600,
+    keyGenerator: (req) => `ship-categories:${JSON.stringify(req.query)}`,
+    varyBy: ['accept-language']
+  }),
+  shipCategoryRoutes
+);
+
+v2.use('/ship-departures',
+  queryEnhancer(
+    ['departureDate', 'returnDate', 'availableSeats', 'createdAt'],
+    ['status', 'shipId']
+  ),
+  cacheMiddleware({
+    ttl: 180,
+    keyGenerator: (req) => `ship-departures:${JSON.stringify(req.query)}`
+  }),
+  shipDepartureRoutes
 );
 
 v2.use('/hotels',
@@ -284,6 +365,33 @@ v2.use('/tenants',
   tenantRoutes
 );
 
+// Public verification routes (no auth required for document verification)
+v2.use('/verification',
+  cacheMiddleware({
+    ttl: 60, // Cache verification results for 1 minute
+    keyGenerator: (req) => `verification:${req.params.documentId || JSON.stringify(req.body)}`
+  }),
+  verificationRoutes
+);
+
+// Footer routes (public + admin)
+v2.use('/footer',
+  cacheMiddleware({
+    ttl: 600, // Cache footer config for 10 minutes
+    keyGenerator: (req) => `footer:${(req as any).tenantId || 'default'}:${req.path}`
+  }),
+  footerRoutes
+);
+
+// Hero settings routes (public + admin)
+v2.use('/hero',
+  cacheMiddleware({
+    ttl: 600, // Cache hero settings for 10 minutes
+    keyGenerator: (req) => `hero:${(req as any).tenantId || 'default'}:${req.params.page || 'all'}`
+  }),
+  heroRoutes
+);
+
 // Mount versioned routes
 app.use('/api/v1', v1);
 app.use('/api/v2', v2);
@@ -328,6 +436,7 @@ app.get('/api/docs', (req, res) => {
         version: 'GET /api/version',
         auth: 'POST /api/auth/login',
         cruises: 'GET /api/cruises?page=1&limit=10&sort=price:asc&filter={"available":true}',
+        ships: 'GET /api/ships?page=1&limit=10&sort=price:asc&filter={"type":"Luxury"}',
         hotels: 'GET /api/hotels?search=luxury&include=amenities',
         packages: 'GET /api/packages?select=name,price&filter={"type":"adventure"}',
         bookings: 'GET /api/bookings (authenticated)',

@@ -57,7 +57,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative w-full min-h-[60vh] bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 overflow-hidden">
+    <section className="relative w-full min-h-[60vh] bg-gradient-to-br from-sky-900 via-blue-900 to-cyan-900 overflow-hidden">
       {/* Video Background */}
       <video
         ref={videoRef}
@@ -82,13 +82,13 @@ export default function HeroSection() {
 
       {/* Video Overlay */}
       <div className="absolute inset-0 bg-black/40"></div>
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/60 via-purple-900/40 to-pink-900/60"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-sky-900/60 via-blue-900/40 to-cyan-900/60"></div>
 
       {/* Background Effects */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400/10 via-purple-400/8 to-pink-400/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400/10 via-sky-400/8 to-blue-400/10"></div>
         <div className="absolute top-10 left-10 w-32 h-32 bg-cyan-400/10 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-10 right-10 w-40 h-40 bg-pink-400/10 rounded-full blur-xl animate-pulse" style={{animationDelay: '2s'}}></div>
+        <div className="absolute bottom-10 right-10 w-40 h-40 bg-cyan-400/10 rounded-full blur-xl animate-pulse" style={{animationDelay: '2s'}}></div>
       </div>
 
       {/* Main Content Container */}
@@ -199,7 +199,7 @@ export default function HeroSection() {
                   <label className="block text-sm font-medium text-transparent">Search</label>
                   <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-cyan-500 to-pink-500 hover:from-cyan-400 hover:to-pink-400 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
+                    className="w-full bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-cyan-400 hover:to-pink-400 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
                   >
                     <Search className="w-5 h-5" />
                     <span>Search</span>
@@ -252,7 +252,7 @@ export default function HeroSection() {
       {/* Scroll Indicator */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
         <div className="w-8 h-12 border-2 border-white/40 rounded-full flex justify-center">
-          <div className="w-1 h-3 bg-gradient-to-b from-cyan-400 to-pink-400 rounded-full mt-2 animate-pulse"></div>
+          <div className="w-1 h-3 bg-gradient-to-b from-sky-400 to-cyan-400 rounded-full mt-2 animate-pulse"></div>
         </div>
       </div>
     </section>

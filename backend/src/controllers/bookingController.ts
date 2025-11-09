@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 
 export const createBooking = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { cruiseId, hotelId, packageId } = req.params;
+    const { cruiseId, shipId, hotelId, packageId } = req.params;
     const { guests, checkIn, checkOut, specialRequests } = req.body as BookingRequest;
     const userId = req.userId!;
 
@@ -24,6 +24,14 @@ export const createBooking = async (req: AuthRequest, res: Response, next: NextF
       bookingType = BookingType.CRUISE;
       itemId = cruiseId;
       totalAmount = Number(cruise.price) * guests;
+    } else if (shipId) {
+      const ship = await prisma.ship.findUnique({ where: { id: shipId } });
+      if (!ship || !ship.available) {
+        return next(createError('Ship not found or not available', 404));
+      }
+      bookingType = BookingType.SHIP;
+      itemId = shipId;
+      totalAmount = Number(ship.price) * guests;
     } else if (hotelId) {
       const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
       if (!hotel || !hotel.available) {
@@ -53,6 +61,7 @@ export const createBooking = async (req: AuthRequest, res: Response, next: NextF
         userId,
         bookingType,
         cruiseId: bookingType === BookingType.CRUISE ? itemId : undefined,
+        shipId: bookingType === BookingType.SHIP ? itemId : undefined,
         hotelId: bookingType === BookingType.HOTEL ? itemId : undefined,
         packageId: bookingType === BookingType.PACKAGE ? itemId : undefined,
         guests,
@@ -63,6 +72,7 @@ export const createBooking = async (req: AuthRequest, res: Response, next: NextF
       },
       include: {
         cruise: true,
+        ship: true,
         hotel: true,
         package: true,
       },
@@ -92,6 +102,7 @@ export const getAllBookings = async (req: AuthRequest, res: Response, next: Next
       prisma.booking.findMany({
         include: {
           cruise: true,
+          ship: true,
           hotel: true,
           package: true,
           user: {

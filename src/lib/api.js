@@ -127,6 +127,30 @@ export const cruiseApi = {
   }),
 };
 
+export const shipApi = {
+  getAll: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const response = await apiRequestWithRetry(`/ships${query ? `?${query}` : ''}`);
+    return {
+      data: response.data?.ships || response.data || [],
+      pagination: response.data?.pagination || response.pagination
+    };
+  },
+  getById: (id) => {
+    console.log('shipApi.getById called with:', id);
+    return apiRequestWithRetry(`/ships/${id}`);
+  },
+  getBySlug: (slug) => {
+    console.log('shipApi.getBySlug called with:', slug);
+    return apiRequestWithRetry(`/ships/${slug}`);
+  },
+  getReviews: (id) => apiRequestWithRetry(`/ships/${id}/reviews`),
+  checkAvailability: (id, params) => apiRequestWithRetry(`/ships/${id}/availability`, {
+    method: 'POST',
+    body: JSON.stringify(params)
+  }),
+};
+
 export const hotelApi = {
   getAll: async (params = {}) => {
     const query = new URLSearchParams(params).toString();

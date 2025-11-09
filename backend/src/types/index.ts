@@ -20,6 +20,14 @@ export interface CruiseFilters extends PaginationQuery {
   rating?: string;
 }
 
+export interface ShipFilters extends PaginationQuery {
+  minPrice?: string;
+  maxPrice?: string;
+  duration?: string;
+  type?: string;
+  rating?: string;
+}
+
 export interface HotelFilters extends PaginationQuery {
   city?: string;
   country?: string;

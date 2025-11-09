@@ -383,7 +383,7 @@ body {
 }
 
 .text-holographic {
-  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7);
+  background: linear-gradient(45deg, #0EA5E9, #38BDF8, #06B6D4, #22D3EE, #3B82F6);
   background-size: 400% 400%;
   -webkit-background-clip: text;
   background-clip: text;

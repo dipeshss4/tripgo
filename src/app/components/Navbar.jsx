@@ -15,8 +15,9 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react";
-import { cruiseApi, hotelApi, packageApi } from "../../lib/api";
+import { cruiseApi, shipApi, hotelApi, packageApi } from "../../lib/api";
 import { getCruiseCategories, getCruisesByCategory } from "../../lib/cruiseApi";
+import { getShipCategories, getShipsByCategory } from "../../lib/shipApi";
 
 /* ---------- Component ---------- */
 export default function Navbar() {
@@ -24,28 +25,35 @@ export default function Navbar() {
   const [solid, setSolid] = useState(false);
 
   const [showCruises, setShowCruises] = useState(false);
+  const [showShips, setShowShips] = useState(false);
   const [showHotels, setShowHotels] = useState(false);
   const [showPackages, setShowPackages] = useState(false);
 
   const [cruiseCategories, setCruiseCategories] = useState([]);
+  const [shipCategories, setShipCategories] = useState([]);
   const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [hoveredShipCategory, setHoveredShipCategory] = useState(null);
   const [categoryCruises, setCategoryCruises] = useState({});
+  const [categoryShips, setCategoryShips] = useState({});
   const [hotelList, setHotelList] = useState([]);
   const [packageList, setPackageList] = useState([]);
 
   const [loading, setLoading] = useState({
     cruises: false,
+    ships: false,
     hotels: false,
     packages: false
   });
 
   const [error, setError] = useState({
     cruises: null,
+    ships: null,
     hotels: null,
     packages: null
   });
 
   const cruiseTimer = useRef(null);
+  const shipTimer = useRef(null);
   const hotelTimer = useRef(null);
   const packageTimer = useRef(null);
 
@@ -136,6 +144,47 @@ export default function Navbar() {
     { name: "USA National Parks", image: "https://images.pexels.com/photos/414171/pexels-photo-414171.jpeg?auto=compress&cs=tinysrgb&w=400", href: "/packages" }
   ];
 
+  const fetchShipCategories = async () => {
+    if (shipCategories.length > 0) return; // Don't refetch if already loaded
+
+    setLoading(prev => ({ ...prev, ships: true }));
+    setError(prev => ({ ...prev, ships: null }));
+
+    try {
+      const categories = await getShipCategories();
+      setShipCategories(categories);
+      sessionStorage.setItem('navbar-ship-categories', JSON.stringify(categories));
+    } catch (err) {
+      console.error('Error fetching ship categories:', err);
+      setError(prev => ({ ...prev, ships: 'Failed to load ship categories' }));
+    } finally {
+      setLoading(prev => ({ ...prev, ships: false }));
+    }
+  };
+
+  const fetchCategoryShips = async (categorySlug) => {
+    // Check if already loaded
+    if (categoryShips[categorySlug]) return;
+
+    try {
+      const data = await getShipsByCategory(categorySlug);
+      if (data && data.ships) {
+        setCategoryShips(prev => ({
+          ...prev,
+          [categorySlug]: data.ships
+        }));
+      }
+    } catch (err) {
+      console.error(`Error fetching ships for category ${categorySlug}:`, err);
+    }
+  };
+
+  const handleShipCategoryHover = (category) => {
+    setHoveredShipCategory(category.slug);
+    // Fetch ships for this category
+    fetchCategoryShips(category.slug);
+  };
+
   const fetchPackages = async () => {
     if (packageList.length > 0) return; // Don't refetch if already loaded
 
@@ -160,6 +209,7 @@ export default function Navbar() {
   useEffect(() => {
     // Check if data exists in sessionStorage for caching
     const cachedCategories = sessionStorage.getItem('navbar-cruise-categories');
+    const cachedShipCategories = sessionStorage.getItem('navbar-ship-categories');
     const cachedHotels = sessionStorage.getItem('navbar-hotels');
     const cachedPackages = sessionStorage.getItem('navbar-packages');
 
@@ -168,6 +218,14 @@ export default function Navbar() {
         setCruiseCategories(JSON.parse(cachedCategories));
       } catch (e) {
         console.error('Error parsing cached cruise categories:', e);
+      }
+    }
+
+    if (cachedShipCategories) {
+      try {
+        setShipCategories(JSON.parse(cachedShipCategories));
+      } catch (e) {
+        console.error('Error parsing cached ship categories:', e);
       }
     }
 
@@ -194,6 +252,11 @@ export default function Navbar() {
         await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
       }
 
+      if (!cachedShipCategories) {
+        await fetchShipCategories();
+        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+      }
+
       if (!cachedHotels) {
         await fetchHotels();
         await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
@@ -213,6 +276,7 @@ export default function Navbar() {
     const onKey = (e) => {
       if (e.key === "Escape") {
         setShowCruises(false);
+        setShowShips(false);
         setShowHotels(false);
         setShowPackages(false);
       }
@@ -239,6 +303,16 @@ export default function Navbar() {
     }
   };
   const closeCruises = () => { cruiseTimer.current = setTimeout(() => setShowCruises(false), 120); };
+
+  const openShipsMenu = () => {
+    if (shipTimer.current) clearTimeout(shipTimer.current);
+    setShowShips(true);
+    // Only fetch if not already loading and no data exists
+    if (!loading.ships && shipCategories.length === 0) {
+      fetchShipCategories();
+    }
+  };
+  const closeShipsMenu = () => { shipTimer.current = setTimeout(() => setShowShips(false), 120); };
 
   const openHotelsMenu = () => {
     if (hotelTimer.current) clearTimeout(hotelTimer.current);
@@ -382,6 +456,112 @@ export default function Navbar() {
               </div>
             </div>
 
+            {/* Ships */}
+            <div className="relative" onMouseEnter={openShipsMenu} onMouseLeave={closeShipsMenu}>
+              <button className="inline-flex items-center gap-2 text-sm font-medium text-white/90 hover:text-white transition" aria-haspopup="true" aria-expanded={showShips} onClick={() => setShowShips((v) => !v)}>
+                <Ship className="h-4 w-4" /> Ships <ChevronDown className="h-4 w-4 opacity-80" />
+              </button>
+              <div className={`absolute left-0 mt-3 w-[420px] rounded-2xl border border-white/10 bg-black/80 p-4 text-white shadow-2xl backdrop-blur-md ${showShips ? "block" : "hidden"}`} onMouseEnter={openShipsMenu} onMouseLeave={closeShipsMenu}>
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-white/90">Browse by Type</span>
+                  <a href="/ships" className="text-xs font-semibold text-white/80 hover:text-white">View all →</a>
+                </div>
+                {loading.ships ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-white/60" />
+                    <span className="ml-2 text-sm text-white/60">Loading categories...</span>
+                  </div>
+                ) : error.ships ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-red-400">{error.ships}</p>
+                    <button onClick={fetchShipCategories} className="mt-2 text-xs text-white/80 hover:text-white">Try again</button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {shipCategories.map((category) => {
+                      const catShips = categoryShips[category.slug] || [];
+                      return (
+                        <div
+                          key={category.id}
+                          className="relative group/cat"
+                          onMouseEnter={() => handleShipCategoryHover(category)}
+                          onMouseLeave={() => setHoveredShipCategory(null)}
+                        >
+                          <a
+                            href={`/ships?category=${category.slug}`}
+                            className="flex items-center gap-3 rounded-lg p-3 hover:bg-white/10 transition border border-white/5 hover:border-white/20"
+                            onClick={() => setShowShips(false)}
+                          >
+                            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-2xl">
+                              {category.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="truncate text-sm font-semibold text-white">{category.name}</p>
+                              <p className="truncate text-xs text-white/60">{category.description}</p>
+                            </div>
+                            <svg className="w-4 h-4 text-white/40 group-hover/cat:text-white/80 group-hover/cat:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </a>
+
+                          {/* Submenu with ships */}
+                          {hoveredShipCategory === category.slug && (
+                            <div className="absolute left-full top-0 ml-2 w-[320px] rounded-xl border border-white/10 bg-black/90 p-3 shadow-2xl backdrop-blur-md z-50">
+                              <div className="mb-2 flex items-center gap-2">
+                                <span className="text-lg">{category.icon}</span>
+                                <span className="text-xs font-semibold text-white/90">{category.name}</span>
+                              </div>
+                              {catShips.length === 0 ? (
+                                <div className="flex items-center justify-center py-4">
+                                  <Loader2 className="w-4 h-4 animate-spin text-white/60" />
+                                  <span className="ml-2 text-xs text-white/60">Loading...</span>
+                                </div>
+                              ) : (
+                                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                  {catShips.slice(0, 5).map((ship) => (
+                                    <a
+                                      key={ship.id}
+                                      href={`/ships/${ship.slug || ship.id}`}
+                                      className="flex items-center gap-2 rounded-lg p-2 hover:bg-white/10 transition"
+                                      onClick={() => setShowShips(false)}
+                                    >
+                                      <img
+                                        src={ship.images?.[0] || ship.image || "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=48&h=48&fit=crop&crop=center"}
+                                        alt={ship.name}
+                                        className="w-10 h-10 rounded object-cover ring-1 ring-white/10"
+                                        onError={(e) => {
+                                          if (!e.target.src.includes('placeholder')) {
+                                            e.target.src = "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=48&h=48&fit=crop&crop=center";
+                                          }
+                                        }}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="truncate text-xs font-medium text-white">{ship.name}</p>
+                                        <p className="truncate text-xs text-white/60">${ship.price || '499'}</p>
+                                      </div>
+                                    </a>
+                                  ))}
+                                  {catShips.length > 5 && (
+                                    <a
+                                      href={`/ships?category=${category.slug}`}
+                                      className="block text-center text-xs text-blue-400 hover:text-blue-300 py-2"
+                                      onClick={() => setShowShips(false)}
+                                    >
+                                      View all {catShips.length} ships →
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Hotels */}
             <div className="relative" onMouseEnter={openHotelsMenu} onMouseLeave={closeHotelsMenu}>
               <button className="inline-flex items-center gap-2 text-sm font-medium text-white/90 hover:text-white transition" aria-haspopup="true" aria-expanded={showHotels} onClick={() => setShowHotels((v) => !v)}>
@@ -464,6 +644,7 @@ export default function Navbar() {
               </div>
             </div>
 
+            <LinkItem href="/verify-document"><Ship className="h-4 w-4" /> Verify Documents</LinkItem>
             <LinkItem href="/destinations"><Mountain className="h-4 w-4" /> Destination</LinkItem>
             <LinkItem href="/blog"><FileText className="h-4 w-4" /> Blog</LinkItem>
             <LinkItem href="/contact"><Phone className="h-4 w-4" /> Contact</LinkItem>
@@ -486,8 +667,10 @@ export default function Navbar() {
           <div className="mt-2 rounded-2xl border border-white/10 bg-black/70 p-4 backdrop-blur-md lg:hidden">
             <div className="grid gap-3">
               <a href="/cruises" className="text-white/90 hover:text-white">Cruises</a>
+              <a href="/ships" className="text-white/90 hover:text-white">Ships</a>
               <a href="/hotels" className="text-white/90 hover:text-white">Hotels</a>
               <a href="/packages" className="text-white/90 hover:text-white">Travel Packages</a>
+              <a href="/verify-document" className="text-white/90 hover:text-white">Verify Documents</a>
               <a href="/destinations" className="text-white/90 hover:text-white">Destination</a>
               <a href="/blog" className="text-white/90 hover:text-white">Blog</a>
               <a href="/contact" className="text-white/90 hover:text-white">Contact</a>

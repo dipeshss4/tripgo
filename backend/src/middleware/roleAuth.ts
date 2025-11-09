@@ -108,6 +108,13 @@ export const permissions = {
   BOOK_CRUISE: [UserRole.CUSTOMER, UserRole.ADMIN, UserRole.EMPLOYEE],
   REVIEW_CRUISE: [UserRole.CUSTOMER, UserRole.ADMIN, UserRole.EMPLOYEE],
 
+  // Ship permissions
+  CREATE_SHIP: [UserRole.ADMIN],
+  UPDATE_SHIP: [UserRole.ADMIN],
+  DELETE_SHIP: [UserRole.ADMIN],
+  BOOK_SHIP: [UserRole.CUSTOMER, UserRole.ADMIN, UserRole.EMPLOYEE],
+  REVIEW_SHIP: [UserRole.CUSTOMER, UserRole.ADMIN, UserRole.EMPLOYEE],
+
   // Hotel permissions
   CREATE_HOTEL: [UserRole.ADMIN],
   UPDATE_HOTEL: [UserRole.ADMIN],
